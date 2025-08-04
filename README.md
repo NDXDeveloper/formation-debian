@@ -6,15 +6,15 @@
 
 ## 📋 Description
 
-Cette formation complète et moderne vous accompagne dans la maîtrise de Debian, de l'installation desktop aux infrastructures cloud-native les plus avancées. Conçue pour répondre aux besoins actuels du DevOps et de l'infrastructure moderne, elle couvre 280 heures de contenu théorique et pratique.
+Cette formation complète et moderne vous accompagne dans la maîtrise théorique de Debian, de l'installation desktop aux infrastructures cloud-native les plus avancées. Conçue pour répondre aux besoins actuels du DevOps et de l'infrastructure moderne, elle couvre 280 heures de contenu théorique approfondi.
 
 ### 🎯 Objectifs pédagogiques
 
-- **Maîtriser Debian** de A à Z : installation, configuration, administration
-- **Déployer des services** robustes et sécurisés
-- **Orchestrer avec Kubernetes** et les technologies cloud-native
-- **Automatiser** avec Infrastructure as Code (Terraform, Ansible)
-- **Sécuriser** les environnements hybrides et conteneurisés
+- **Comprendre Debian** de A à Z : concepts, architecture, administration
+- **Maîtriser les services** robustes et sécurisés
+- **Appréhender Kubernetes** et les technologies cloud-native
+- **Découvrir l'Infrastructure as Code** (Terraform, Ansible)
+- **Intégrer la sécurité** dans les environnements hybrides et conteneurisés
 - **Optimiser** les performances et les coûts
 
 ---
@@ -29,7 +29,7 @@ Cette formation complète et moderne vous accompagne dans la maîtrise de Debian
 | **4-7** | Administration système | 58h | Intermédiaire |
 | **8-11** | Virtualisation & Cloud | 80h | Avancé |
 | **12-17** | Expertise cloud-native | 82h | Expert |
-| **18** | Projets pratiques | 24h | Tous niveaux |
+| **18** | Synthèse et cas d'usage | 24h | Tous niveaux |
 
 ### 🔧 Technologies couvertes
 
@@ -69,7 +69,7 @@ Cette formation complète et moderne vous accompagne dans la maîtrise de Debian
 
 ## 📖 Contenu détaillé
 
-Consultez le fichier [SOMMAIRE.md](SOMMAIRE.md) pour la table des matières complète avec tous les sous-modules et laboratoires pratiques.
+Consultez le fichier [SOMMAIRE.md](SOMMAIRE.md) pour la table des matières complète avec tous les sous-modules et concepts abordés.
 
 ---
 
@@ -77,10 +77,11 @@ Consultez le fichier [SOMMAIRE.md](SOMMAIRE.md) pour la table des matières comp
 
 ### Profils adaptés
 - **Administrateurs système** souhaitant évoluer vers le cloud-native
-- **Développeurs** voulant maîtriser l'infrastructure moderne
+- **Développeurs** voulant comprendre l'infrastructure moderne
 - **DevOps Engineers** cherchant à approfondir Kubernetes et l'IaC
 - **Étudiants** en informatique (niveau bac+2 minimum)
 - **Professionnels IT** en reconversion
+- **Architectes** souhaitant maîtriser les concepts modernes
 
 ### Prérequis
 - Bases de Linux et ligne de commande
@@ -91,26 +92,27 @@ Consultez le fichier [SOMMAIRE.md](SOMMAIRE.md) pour la table des matières comp
 
 ## 🛠️ Méthode pédagogique
 
-### Format hybride
-- **Théorie** : Concepts fondamentaux et architecture
-- **Laboratoires pratiques** : Exercices guidés pas à pas
-- **Projets** : Mise en situation réelle
-- **Troubleshooting** : Résolution de problèmes concrets
+### Format théorique approfondi
+- **Concepts fondamentaux** : Architecture et principes de base
+- **Théorie avancée** : Fonctionnement interne des technologies
+- **Cas d'usage** : Exemples concrets d'implémentation
+- **Bonnes pratiques** : Recommandations professionnelles
+- **Troubleshooting théorique** : Méthodologies de résolution
 
-### Environnement technique
-- **VMs locales** (VirtualBox/VMware)
-- **Cloud providers** (labs optionnels)
-- **Kubernetes local** (minikube, K3s)
-- **Outils DevOps** intégrés
+### Approche conceptuelle
+- **Compréhension globale** des écosystèmes
+- **Interconnexions** entre les technologies
+- **Évolutions** et tendances du marché
+- **Comparaisons** d'outils et solutions
 
 ---
 
-## 📊 Évaluation et certification
+## 📊 Validation des connaissances
 
-### Évaluation continue
-- Validation des laboratoires
-- Quiz de compréhension
-- Projets pratiques notés
+### Évaluation théorique
+- Quiz de compréhension par module
+- Études de cas et analyses
+- Synthèses conceptuelles
 
 ### Certifications préparées
 - **CKA** (Certified Kubernetes Administrator)
@@ -131,14 +133,14 @@ cd formation-debian
 ### Progression recommandée
 1. Lisez le [SOMMAIRE.md](SOMMAIRE.md) pour identifier votre niveau
 2. Suivez les modules dans l'ordre ou adaptez selon vos besoins
-3. Réalisez tous les laboratoires pratiques
-4. Validez vos acquis avec les projets finaux
+3. Approfondissez les concepts avec les ressources complémentaires
+4. Validez vos acquis avec les évaluations théoriques
 
 ### Adaptation modulaire
-- **Débutants** : Modules 1-7 (bases solides)
+- **Débutants** : Modules 1-7 (bases conceptuelles solides)
 - **Intermédiaires** : Modules 8-13 (virtualisation et orchestration)
 - **Avancés** : Modules 14-17 (expertise cloud-native)
-- **Projets** : Module 18 (mise en pratique globale)
+- **Synthèse** : Module 18 (vision globale et architectures)
 
 ---
 
@@ -147,7 +149,7 @@ cd formation-debian
 Cette formation évolue avec l'écosystème technologique :
 - **Versions Debian** : Support des versions LTS et stable
 - **Kubernetes** : Suivi des versions supportées
-- **Cloud providers** : Intégration des nouveaux services
+- **Cloud providers** : Intégration des nouveaux concepts
 - **Sécurité** : Mise à jour des bonnes pratiques
 
 ---
@@ -155,15 +157,16 @@ Cette formation évolue avec l'écosystème technologique :
 ## 📞 Support
 
 ### Documentation
-- Chaque module inclut une documentation complète
-- Troubleshooting guides intégrés
-- Références et liens utiles
+- Chaque module inclut une documentation conceptuelle complète
+- Guides de compréhension théorique
+- Références et liens vers la documentation officielle
+- Ressources complémentaires recommandées
 
 ### Ressources externes
 - Documentation officielle Debian
 - Kubernetes documentation
 - Cloud provider docs
-- Communautés techniques
+- Communautés techniques et forums spécialisés
 
 ---
 
