@@ -1,3 +1,5 @@
+🔝 Retour au [Sommaire](/SOMMAIRE.md)
+
 # Module 1 : Fondamentaux de Debian
 
 *Durée : 8h | Niveau : Débutant*
@@ -149,3 +151,6 @@ La solidité des fondamentaux acquis ici déterminera la facilité d'apprentissa
 ---
 
 *💡 **Conseil** : Prenez le temps de bien assimiler chaque concept de ce module. Une compréhension solide des fondamentaux vous fera gagner un temps précieux dans les modules suivants et vous permettra de mieux appréhender les subtilités de l'écosystème Debian.*
+
+
+⏭️
