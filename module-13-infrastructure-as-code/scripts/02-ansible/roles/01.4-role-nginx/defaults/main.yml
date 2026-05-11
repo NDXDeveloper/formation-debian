@@ -1,0 +1,30 @@
+# =============================================================================
+# Module 13 — Infrastructure as Code
+# Section 13.1.4 — Rôles, collections et Ansible Galaxy
+# Fichier : roles/nginx/defaults/main.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Variables par défaut du rôle (priorité la plus basse).
+# C'est ici que l'on place toutes les variables qu'un consommateur du rôle
+# est susceptible de personnaliser via group_vars/host_vars/vars de play.
+# =============================================================================
+---
+nginx_package_name: nginx
+nginx_service_name: nginx
+nginx_service_state: started
+nginx_service_enabled: true
+
+nginx_worker_processes: auto
+nginx_worker_connections: 1024
+nginx_keepalive_timeout: 65
+
+nginx_log_level: warn
+nginx_access_log: /var/log/nginx/access.log
+nginx_error_log: /var/log/nginx/error.log
+
+nginx_enable_gzip: true
+nginx_gzip_level: 6
+
+nginx_remove_default_vhost: true
+
+nginx_vhosts: []

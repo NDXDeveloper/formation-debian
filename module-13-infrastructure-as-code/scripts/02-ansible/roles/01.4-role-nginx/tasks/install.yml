@@ -1,0 +1,26 @@
+# =============================================================================
+# Module 13 — Infrastructure as Code
+# Section 13.1.4 — Rôles, collections et Ansible Galaxy
+# Fichier : roles/nginx/tasks/install.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Tâches d'installation : dépendances système, paquet Nginx et activation.
+# =============================================================================
+---
+- name: Installer les dépendances
+  ansible.builtin.apt:
+    name: "{{ nginx_debian_dependencies }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Installer Nginx
+  ansible.builtin.apt:
+    name: "{{ nginx_package_name }}"
+    state: present
+
+- name: Activer et démarrer le service Nginx
+  ansible.builtin.systemd:
+    name: "{{ nginx_service_name }}"
+    state: "{{ nginx_service_state }}"
+    enabled: "{{ nginx_service_enabled }}"

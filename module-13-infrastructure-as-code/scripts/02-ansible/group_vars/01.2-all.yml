@@ -1,0 +1,32 @@
+# =============================================================================
+# Module 13 — Infrastructure as Code
+# Section 13.1.2 — Inventaires, connexions et variables
+# Fichier : inventory/production/group_vars/all.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Variables communes à toute l'infrastructure (groupe spécial `all`).
+# Ce fichier est chargé pour TOUS les hôtes de l'inventaire.
+# =============================================================================
+---
+# Configuration DNS commune à toute l'infrastructure
+dns_servers:
+  - 10.0.0.10
+  - 10.0.0.11
+dns_search_domain: example.com
+
+# Configuration NTP
+ntp_servers:
+  - 0.fr.pool.ntp.org
+  - 1.fr.pool.ntp.org
+
+# Configuration syslog centralisé
+syslog_server: loghost.example.com
+syslog_port: 514
+
+# Politique de mots de passe (PAM)
+password_min_length: 14
+password_max_age: 90
+
+# Dépôts APT
+apt_mirror: http://deb.debian.org/debian
+apt_release: trixie

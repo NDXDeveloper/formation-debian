@@ -1,0 +1,40 @@
+# =============================================================================
+# Module 13 — Infrastructure as Code
+# Section 13.2.2 — Installation sur Debian et premiers déploiements
+# Fichier : .gitignore (à placer à la racine d'un projet Terraform)
+# Licence : CC BY 4.0
+# =============================================================================
+# Le fichier .terraform.lock.hcl DOIT être versionné (reproductibilité).
+# Le terraform.tfstate NE DOIT PAS être versionné (secrets, concurrence).
+# =============================================================================
+
+# Répertoire de travail interne (providers téléchargés, cache)
+.terraform/
+
+# Fichiers d'état (contiennent des données sensibles)
+*.tfstate
+*.tfstate.*
+terraform.tfstate.backup
+
+# Fichiers de variables contenant des secrets
+*.tfvars
+!example.tfvars
+!*.tfvars.example
+
+# Fichiers de plan sauvegardés
+*.tfplan
+
+# Fichiers système
+.DS_Store
+*.swp
+*~
+
+# Crash logs
+crash.log
+crash.*.log
+
+# Override files (utilisés pour le développement local)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json

@@ -1,0 +1,23 @@
+## =============================================================================
+## Module 13 — Infrastructure as Code
+## Section 13.2.2 — Installation sur Debian et premiers déploiements
+## Fichier : templates/cloud-init-network.yml.tftpl
+## Licence : CC BY 4.0
+## =============================================================================
+## Template cloud-init network-config (Netplan v2).
+## On cible la première interface Ethernet via un match sur « en* » plutôt
+## que de coder en dur ens3/enp1s0/etc., pour rester portable entre versions
+## de libvirt et schémas systemd-udev.
+## =============================================================================
+version: 2
+ethernets:
+  primary:
+    match:
+      name: "en*"
+    addresses:
+      - ${address}
+    gateway4: ${gateway}
+    nameservers:
+      addresses:
+        - 1.1.1.1
+        - 8.8.8.8

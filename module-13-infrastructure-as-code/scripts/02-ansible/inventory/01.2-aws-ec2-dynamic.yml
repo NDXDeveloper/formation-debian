@@ -1,0 +1,36 @@
+# =============================================================================
+# Module 13 — Infrastructure as Code
+# Section 13.1.2 — Inventaires, connexions et variables
+# Fichier : inventory/aws_ec2.yml (inventaire dynamique AWS EC2)
+# Licence : CC BY 4.0
+# =============================================================================
+# Configuration du plugin amazon.aws.aws_ec2 pour découvrir automatiquement
+# les instances EC2 Debian dans plusieurs régions, les regrouper par tags
+# AWS et composer les variables de connexion.
+#
+# Prérequis : ansible-galaxy collection install amazon.aws
+# Activation : enable_plugins = ..., amazon.aws.aws_ec2 dans ansible.cfg
+# =============================================================================
+---
+plugin: amazon.aws.aws_ec2
+regions:
+  - eu-west-3
+  - eu-central-1
+filters:
+  tag:OS: debian
+  instance-state-name: running
+keyed_groups:
+  - key: tags.Environment
+    prefix: env
+    separator: "_"
+  - key: tags.Role
+    prefix: role
+    separator: "_"
+  - key: placement.availability_zone
+    prefix: az
+hostnames:
+  - tag:Name
+  - private-ip-address
+compose:
+  ansible_host: private_ip_address
+  ansible_user: "'admin'"

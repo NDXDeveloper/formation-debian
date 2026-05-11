@@ -1,0 +1,74 @@
+# =============================================================================
+# Module 13 — Infrastructure as Code
+# Section 13.1.3 — Playbooks : structure, templates Jinja2, handlers
+# Fichier : playbooks/deploy-with-rollback.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Déploiement applicatif avec gestion d'erreur via block / rescue / always.
+# Équivalent d'un try/catch/finally Ansible :
+#   - block   : tâches principales du déploiement
+#   - rescue  : restauration en cas d'échec
+#   - always  : nettoyage exécuté dans tous les cas
+# =============================================================================
+---
+- name: Déploiement de l'application avec rollback
+  hosts: webservers
+  become: true
+
+  tasks:
+    - name: Déploiement applicatif
+      block:
+        - name: Arrêter le service applicatif
+          ansible.builtin.systemd:
+            name: myapp
+            state: stopped
+
+        - name: Déployer la nouvelle version
+          ansible.builtin.unarchive:
+            src: "releases/myapp-{{ app_version }}.tar.gz"
+            dest: /opt/myapp/
+            remote_src: false
+
+        - name: Appliquer les migrations de base de données
+          ansible.builtin.command:
+            cmd: /opt/myapp/bin/migrate
+          register: migration_result
+          changed_when: "'no changes' not in migration_result.stdout"
+
+        - name: Démarrer le service applicatif
+          ansible.builtin.systemd:
+            name: myapp
+            state: started
+
+      rescue:
+        - name: Restaurer la version précédente
+          ansible.builtin.copy:
+            src: /opt/myapp/backup/
+            dest: /opt/myapp/current/
+            remote_src: true
+            mode: preserve
+
+        - name: Redémarrer avec l'ancienne version
+          ansible.builtin.systemd:
+            name: myapp
+            state: restarted
+
+        - name: Notifier l'échec du déploiement
+          community.general.mail:
+            to: ops@example.com
+            subject: "ECHEC deploiement {{ app_version }} sur {{ inventory_hostname }}"
+            body: "Le deploiement a echoue. Rollback effectue."
+          delegate_to: localhost
+
+      always:
+        - name: Nettoyer les fichiers temporaires
+          ansible.builtin.file:
+            path: /tmp/deploy_staging
+            state: absent
+
+        - name: Enregistrer le résultat du déploiement
+          ansible.builtin.lineinfile:
+            path: /var/log/deployments.log
+            line: "{{ ansible_date_time.iso8601 }} - {{ app_version }} - {{ 'SUCCES' if migration_result is succeeded else 'ECHEC' }}"
+            create: true
+            mode: "0644"

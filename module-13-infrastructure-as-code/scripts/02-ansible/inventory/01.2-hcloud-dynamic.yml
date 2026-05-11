@@ -1,0 +1,20 @@
+# =============================================================================
+# Module 13 — Infrastructure as Code
+# Section 13.1.2 — Inventaires, connexions et variables
+# Fichier : inventory/hcloud.yml (inventaire dynamique Hetzner Cloud)
+# Licence : CC BY 4.0
+# =============================================================================
+# Plugin d'inventaire Hetzner Cloud pour les serveurs Debian.
+#
+# Prérequis : ansible-galaxy collection install hetzner.hcloud
+# Variable d'environnement : HCLOUD_TOKEN (ou utiliser un fichier vault)
+# =============================================================================
+---
+plugin: hetzner.hcloud.hcloud
+token: "{{ lookup('env', 'HCLOUD_TOKEN') }}"
+groups:
+  webservers: "'web' in labels.role"
+  dbservers: "'database' in labels.role"
+locations:
+  - fsn1
+  - nbg1

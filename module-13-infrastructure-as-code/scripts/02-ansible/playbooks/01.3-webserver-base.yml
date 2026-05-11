@@ -1,0 +1,30 @@
+# =============================================================================
+# Module 13 — Infrastructure as Code
+# Section 13.1.3 — Playbooks : structure, templates Jinja2, handlers
+# Fichier : playbooks/webserver_base.yml (playbook minimal)
+# Licence : CC BY 4.0
+# =============================================================================
+# Playbook minimal contenant un seul play. Démontre la structure de base :
+# hosts, become, tasks, et les modules ansible.builtin.{apt,systemd}.
+# =============================================================================
+---
+- name: Configurer les serveurs web Debian
+  hosts: webservers
+  become: true
+
+  tasks:
+    - name: Mettre à jour le cache APT
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Installer Nginx
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+
+    - name: Activer et démarrer Nginx
+      ansible.builtin.systemd:
+        name: nginx
+        state: started
+        enabled: true

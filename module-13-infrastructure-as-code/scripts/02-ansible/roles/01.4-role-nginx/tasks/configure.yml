@@ -1,0 +1,27 @@
+# =============================================================================
+# Module 13 — Infrastructure as Code
+# Section 13.1.4 — Rôles, collections et Ansible Galaxy
+# Fichier : roles/nginx/tasks/configure.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Tâches de configuration : déploiement de nginx.conf et nettoyage du
+# vhost par défaut. La validation `nginx -t` empêche le déploiement
+# d'une configuration cassée en production.
+# =============================================================================
+---
+- name: Déployer la configuration principale Nginx
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: "{{ nginx_conf_file }}"
+    owner: root
+    group: root
+    mode: "0644"
+    validate: nginx -t -c %s
+  notify: Recharger Nginx
+
+- name: Supprimer le virtual host par défaut
+  ansible.builtin.file:
+    path: "{{ nginx_sites_enabled }}/default"
+    state: absent
+  when: nginx_remove_default_vhost
+  notify: Recharger Nginx

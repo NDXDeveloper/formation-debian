@@ -1,0 +1,16 @@
+{# =============================================================================
+   Module 13 — Infrastructure as Code
+   Section 13.1.3 — Playbooks : structure, templates Jinja2, handlers
+   Fichier : templates/motd.j2 (Message Of The Day dynamique)
+   Licence : CC BY 4.0
+   ============================================================================= #}
+###############################################
+#  {{ inventory_hostname }}
+#  OS : {{ ansible_distribution }} {{ ansible_distribution_version }}
+#  Noyau : {{ ansible_kernel }}
+#  RAM : {{ ansible_memtotal_mb }} Mo
+#  CPU : {{ ansible_processor_count }} x {{ ansible_processor[2] }}
+#  IP : {{ ansible_default_ipv4.address }}
+#  Groupes Ansible : {{ group_names | join(', ') }}
+#  Dernière configuration : {{ ansible_date_time.iso8601 }}
+###############################################

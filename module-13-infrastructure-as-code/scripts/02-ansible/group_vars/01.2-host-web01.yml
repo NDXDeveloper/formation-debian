@@ -1,0 +1,24 @@
+# =============================================================================
+# Module 13 — Infrastructure as Code
+# Section 13.1.2 — Inventaires, connexions et variables
+# Fichier : inventory/production/host_vars/web01.example.com.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Surcharges de variables spécifiques à un hôte individuel.
+# Le nom du fichier doit correspondre exactement au nom de l'hôte
+# tel qu'il apparaît dans l'inventaire.
+# =============================================================================
+---
+# Surcharges spécifiques à web01
+nginx_worker_processes: 4    # Surcharge : ce serveur a 4 CPU
+http_port: 8080              # Port non standard sur cette machine
+
+# Interfaces réseau
+network_interfaces:
+  - name: ens192
+    address: 10.0.1.10
+    netmask: 255.255.255.0
+    gateway: 10.0.1.1
+  - name: ens224
+    address: 192.168.100.10
+    netmask: 255.255.255.0

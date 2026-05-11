@@ -1,0 +1,22 @@
+# =============================================================================
+# Module 13 — Infrastructure as Code
+# Section 13.1.4 — Rôles, collections et Ansible Galaxy
+# Fichier : roles/nginx/vars/main.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Variables internes au rôle (priorité élevée, ne pas surcharger).
+# On y place les chemins de fichiers spécifiques à la distribution, les noms
+# de paquets qui ne changent pas, et les constantes internes.
+# =============================================================================
+---
+# Chemins spécifiques à Debian
+nginx_conf_dir: /etc/nginx
+nginx_conf_file: /etc/nginx/nginx.conf
+nginx_sites_available: /etc/nginx/sites-available
+nginx_sites_enabled: /etc/nginx/sites-enabled
+nginx_modules_dir: /usr/share/nginx/modules
+
+# Paquets de dépendances Debian
+nginx_debian_dependencies:
+  - openssl
+  - ca-certificates

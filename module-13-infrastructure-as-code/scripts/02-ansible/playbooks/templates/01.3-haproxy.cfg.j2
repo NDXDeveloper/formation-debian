@@ -1,0 +1,16 @@
+{# =============================================================================
+   Module 13 — Infrastructure as Code
+   Section 13.1.3 — Playbooks : structure, templates Jinja2, handlers
+   Fichier : templates/haproxy.cfg.j2 (configuration HAProxy dynamique)
+   Licence : CC BY 4.0
+   Démontre : itération sur les hôtes d'un groupe avec exclusion conditionnelle
+   et contrôle des espaces blancs (- modifier).
+   ============================================================================= #}
+backend webservers
+    balance roundrobin
+    option httpchk GET /health
+{% for host in groups['webservers'] %}
+{%   if hostvars[host].get('maintenance', false) != true %}
+    server {{ hostvars[host]['ansible_hostname'] }} {{ hostvars[host]['ansible_host'] }}:{{ http_port }} check inter 5s fall 3 rise 2
+{%   endif %}
+{% endfor %}

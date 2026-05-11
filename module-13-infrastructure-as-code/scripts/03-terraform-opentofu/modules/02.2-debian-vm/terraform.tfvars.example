@@ -1,0 +1,17 @@
+# =============================================================================
+# Module 13 — Infrastructure as Code
+# Section 13.2.2 — Installation sur Debian et premiers déploiements
+# Fichier : terraform.tfvars.example (valeurs d'exemple SANS secrets)
+# Licence : CC BY 4.0
+# =============================================================================
+# Copier vers terraform.tfvars et adapter les valeurs.
+# Le fichier terraform.tfvars NE DOIT PAS être committé (cf. .gitignore).
+# =============================================================================
+
+vm_name             = "debian-test"
+memory              = 1024
+vcpu                = 1
+disk_size_gb        = 10
+ssh_public_key_path = "~/.ssh/id_ed25519.pub"
+network_address     = "192.168.122.100/24"
+network_gateway     = "192.168.122.1"

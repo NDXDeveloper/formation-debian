@@ -1,0 +1,61 @@
+# =============================================================================
+# Module 13 — Infrastructure as Code
+# Section 13.1.3 — Playbooks : structure, templates Jinja2, handlers
+# Fichier : playbooks/site.yml (playbook principal multi-plays)
+# Licence : CC BY 4.0
+# =============================================================================
+# Playbook principal qui orchestre la totalité du déploiement.
+# Démontre les multi-plays ciblant des groupes différents séquentiellement.
+# Pattern recommandé : un play « common » suivi de plays spécialisés.
+# =============================================================================
+---
+- name: Configuration de base de tous les serveurs
+  hosts: all
+  become: true
+  tasks:
+    - name: Configurer le fuseau horaire
+      community.general.timezone:
+        name: Europe/Paris
+
+    - name: Installer les paquets de base
+      ansible.builtin.apt:
+        name:
+          - vim
+          - htop
+          - curl
+          - gnupg
+          - unattended-upgrades
+        state: present
+        update_cache: true
+
+- name: Déployer les serveurs web
+  hosts: webservers
+  become: true
+  tasks:
+    - name: Installer Nginx
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+
+    - name: Déployer la configuration Nginx
+      ansible.builtin.template:
+        src: templates/nginx.conf.j2
+        dest: /etc/nginx/nginx.conf
+        owner: root
+        group: root
+        mode: "0644"
+
+- name: Déployer les serveurs de base de données
+  hosts: dbservers
+  become: true
+  tasks:
+    - name: Installer PostgreSQL
+      ansible.builtin.apt:
+        name: postgresql-17
+        state: present
+
+    - name: Activer PostgreSQL
+      ansible.builtin.systemd:
+        name: postgresql
+        state: started
+        enabled: true

@@ -1,0 +1,31 @@
+# =============================================================================
+# Module 13 — Infrastructure as Code
+# Section 13.1.4 — Rôles, collections et Ansible Galaxy
+# Fichier : collections/requirements.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Liste des collections Ansible nécessaires au projet, installables via :
+#   ansible-galaxy collection install -r collections/requirements.yml
+# =============================================================================
+---
+collections:
+  - name: ansible.posix
+    version: ">=1.5.0"
+
+  - name: community.general
+    version: ">=8.0.0"
+
+  - name: community.postgresql
+    version: ">=3.4.0"
+
+  - name: community.docker
+    version: ">=3.8.0"
+
+  - name: community.libvirt
+    version: ">=1.3.0"
+
+  - name: kubernetes.core
+    version: ">=3.0.0"
+
+  - name: ansible.utils
+    version: ">=3.0.0"

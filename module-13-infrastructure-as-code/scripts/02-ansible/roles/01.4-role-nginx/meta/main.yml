@@ -1,0 +1,35 @@
+# =============================================================================
+# Module 13 — Infrastructure as Code
+# Section 13.1.4 — Rôles, collections et Ansible Galaxy
+# Fichier : roles/nginx/meta/main.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Métadonnées du rôle : auteur, licence, plateformes supportées,
+# version Ansible minimale, et dépendances vers d'autres rôles.
+# Les dépendances sont exécutées AVANT les tâches du rôle courant.
+# =============================================================================
+---
+galaxy_info:
+  role_name: nginx
+  author: equipe-infra
+  description: Installation et configuration de Nginx sur Debian
+  license: MIT
+  min_ansible_version: "2.18"
+  platforms:
+    - name: Debian
+      versions:
+        - bookworm
+        - trixie
+  galaxy_tags:
+    - nginx
+    - web
+    - debian
+    - reverse_proxy
+
+dependencies:
+  - role: common
+  - role: firewall
+    vars:
+      firewall_allowed_ports:
+        - 80
+        - 443

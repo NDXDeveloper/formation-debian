@@ -1,0 +1,27 @@
+# =============================================================================
+# Module 13 — Infrastructure as Code
+# Section 13.1.4 — Rôles, collections et Ansible Galaxy
+# Fichier : roles/nginx/tasks/vhosts.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Déploiement des virtual hosts à partir de la liste nginx_vhosts.
+# Chaque entrée doit contenir au minimum `server_name`.
+# =============================================================================
+---
+- name: Déployer les configurations de virtual hosts
+  ansible.builtin.template:
+    src: vhost.conf.j2
+    dest: "{{ nginx_sites_available }}/{{ item.server_name }}.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ nginx_vhosts }}"
+  notify: Recharger Nginx
+
+- name: Activer les virtual hosts
+  ansible.builtin.file:
+    src: "{{ nginx_sites_available }}/{{ item.server_name }}.conf"
+    dest: "{{ nginx_sites_enabled }}/{{ item.server_name }}.conf"
+    state: link
+  loop: "{{ nginx_vhosts }}"
+  notify: Recharger Nginx

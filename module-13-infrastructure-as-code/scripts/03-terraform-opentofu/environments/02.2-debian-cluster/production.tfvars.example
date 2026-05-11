@@ -1,0 +1,24 @@
+# =============================================================================
+# Module 13 — Infrastructure as Code
+# Section 13.2.2 — Installation sur Debian et premiers déploiements
+# Fichier : production.tfvars.example
+# Licence : CC BY 4.0
+# =============================================================================
+# Exemple d'extension du cluster avec ajout de web03.
+# Grâce à for_each, l'ajout ne provoque que la création de 3 ressources
+# (volume + cloud-init + domain pour web03), sans toucher aux serveurs
+# existants. Copier vers production.tfvars (ne PAS committer).
+# =============================================================================
+
+cluster_name        = "production"
+domain              = "prod.example.com"
+ssh_public_key_path = "~/.ssh/ansible_ed25519.pub"
+base_network        = "10.0.1"
+
+servers = {
+  "web01" = { role = "webservers", memory = 1024, vcpu = 1, disk_gb = 10, ip_offset = 10 }
+  "web02" = { role = "webservers", memory = 1024, vcpu = 1, disk_gb = 10, ip_offset = 11 }
+  "web03" = { role = "webservers", memory = 1024, vcpu = 1, disk_gb = 10, ip_offset = 12 }
+  "db01"  = { role = "dbservers", memory = 2048, vcpu = 2, disk_gb = 20, ip_offset = 20 }
+  "mon01" = { role = "monitoring", memory = 1024, vcpu = 1, disk_gb = 15, ip_offset = 30 }
+}

@@ -1,0 +1,25 @@
+# =============================================================================
+# Module 13 — Infrastructure as Code
+# Section 13.1.4 — Rôles, collections et Ansible Galaxy
+# Fichier : roles/nginx/handlers/main.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Handlers du rôle, déclenchés par notify: depuis les tâches.
+# `listen` permet de lier un handler à un événement nommé partagé.
+# =============================================================================
+---
+- name: Recharger Nginx
+  ansible.builtin.systemd:
+    name: "{{ nginx_service_name }}"
+    state: reloaded
+
+- name: Redémarrer Nginx
+  ansible.builtin.systemd:
+    name: "{{ nginx_service_name }}"
+    state: restarted
+
+- name: Valider la configuration Nginx
+  ansible.builtin.command:
+    cmd: nginx -t
+  changed_when: false
+  listen: "Recharger Nginx"

@@ -1,0 +1,59 @@
+## =============================================================================
+## Module 13 — Infrastructure as Code
+## Section 13.2.2 — Installation sur Debian et premiers déploiements
+## Fichier : templates/cloud-init-userdata.yml.tftpl (cluster multi-VM)
+## Licence : CC BY 4.0
+## =============================================================================
+## Template cloud-init multi-serveur. Démontre la directive for Terraform
+## (syntaxe percent-brace avec tilde pour supprimer les espaces) dans HCL.
+## =============================================================================
+#cloud-config
+hostname: ${hostname}
+fqdn: ${fqdn}
+manage_etc_hosts: false
+
+locale: fr_FR.UTF-8
+timezone: Europe/Paris
+
+users:
+  - name: debian
+    groups: sudo
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+  - name: ansible
+    groups: sudo
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+package_update: true
+packages:
+  - vim
+  - curl
+  - htop
+  - python3
+  - qemu-guest-agent
+
+write_files:
+  - path: /etc/hosts
+    content: |
+      127.0.0.1  localhost
+      127.0.1.1  ${fqdn}  ${hostname}
+
+      # Cluster hosts (managed by Terraform/cloud-init)
+%{ for entry in hosts_entries ~}
+      ${entry}
+%{ endfor ~}
+
+      ::1  localhost ip6-localhost ip6-loopback
+    permissions: '0644'
+
+  - path: /etc/server-role
+    content: ${role}
+    permissions: '0644'
+
+runcmd:
+  - systemctl enable --now qemu-guest-agent

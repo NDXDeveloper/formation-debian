@@ -1,0 +1,15 @@
+# =============================================================================
+# Module 13 — Infrastructure as Code
+# Section 13.1.4 — Rôles, collections et Ansible Galaxy
+# Fichier : roles/nginx/vars/Debian.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Variables spécifiques à la famille Debian (chargées dynamiquement via
+# include_vars: file: "{{ ansible_os_family }}.yml").
+# =============================================================================
+---
+nginx_package_name: nginx
+nginx_service_name: nginx
+nginx_conf_file: /etc/nginx/nginx.conf
+nginx_sites_available: /etc/nginx/sites-available
+nginx_sites_enabled: /etc/nginx/sites-enabled

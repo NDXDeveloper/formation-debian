@@ -1,0 +1,37 @@
+## =============================================================================
+## Module 13 — Infrastructure as Code
+## Section 13.2.2 — Installation sur Debian et premiers déploiements
+## Fichier : templates/cloud-init-userdata.yml.tftpl
+## Licence : CC BY 4.0
+## =============================================================================
+## Template cloud-init user-data. qemu-guest-agent permet à libvirt de
+## récupérer l'IP via virtio (utilisé par wait_for_lease).
+## =============================================================================
+#cloud-config
+hostname: ${hostname}
+fqdn: ${hostname}.local
+manage_etc_hosts: true
+
+locale: fr_FR.UTF-8
+timezone: Europe/Paris
+
+users:
+  - name: debian
+    groups: sudo
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - vim
+  - curl
+  - htop
+  - python3
+  - qemu-guest-agent
+
+runcmd:
+  - systemctl enable --now qemu-guest-agent

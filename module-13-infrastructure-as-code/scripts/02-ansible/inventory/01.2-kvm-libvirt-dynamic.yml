@@ -1,0 +1,17 @@
+# =============================================================================
+# Module 13 — Infrastructure as Code
+# Section 13.1.2 — Inventaires, connexions et variables
+# Fichier : inventory/kvm.libvirt.yml (inventaire dynamique KVM/libvirt)
+# Licence : CC BY 4.0
+# =============================================================================
+# Plugin community.libvirt.libvirt pour les machines virtuelles gérées par
+# KVM sur l'hyperviseur local. Voir Module 9 pour la mise en place de KVM.
+#
+# Prérequis : ansible-galaxy collection install community.libvirt
+# =============================================================================
+---
+plugin: community.libvirt.libvirt
+uri: qemu:///system
+groups:
+  webservers: "'web' in inventory_hostname"
+  dbservers: "'db' in inventory_hostname"

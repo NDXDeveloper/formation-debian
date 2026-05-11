@@ -1,0 +1,57 @@
+{# =============================================================================
+   Module 13 — Infrastructure as Code
+   Section 13.1.3 — Playbooks : structure, templates Jinja2, handlers
+   Fichier : templates/vhost.conf.j2 (virtual host Nginx — un fichier par site)
+   Licence : CC BY 4.0
+   Usage : appelé via dict2items, item.key = domaine, item.value = config
+   ============================================================================= #}
+{% set domain = item.key %}
+{% set config = item.value %}
+
+{% if config.ssl | default(false) %}
+server {
+    listen 80;
+    server_name {{ domain }};
+    return 301 https://$host$request_uri;
+}
+{% endif %}
+
+server {
+{% if config.ssl | default(false) %}
+    listen 443 ssl http2;
+    ssl_certificate {{ tls_cert_path }}/{{ domain }}.crt;
+    ssl_certificate_key {{ tls_key_path }}/{{ domain }}.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+{% else %}
+    listen 80;
+{% endif %}
+
+    server_name {{ domain }};
+    root {{ config.document_root }};
+    index index.html index.htm;
+
+{% if config.proxy_pass is defined %}
+    location / {
+        proxy_pass {{ config.proxy_pass }};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+{% else %}
+    location / {
+        try_files $uri $uri/ =404;
+    }
+{% endif %}
+
+{% for location in config.extra_locations | default([]) %}
+    location {{ location.path }} {
+        {{ location.directive }};
+    }
+{% endfor %}
+
+    access_log /var/log/nginx/{{ domain }}_access.log main;
+    error_log /var/log/nginx/{{ domain }}_error.log;
+}

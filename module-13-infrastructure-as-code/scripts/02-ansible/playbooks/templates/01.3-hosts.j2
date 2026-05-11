@@ -1,0 +1,17 @@
+{# =============================================================================
+   Module 13 — Infrastructure as Code
+   Section 13.1.3 — Playbooks : structure, templates Jinja2, handlers
+   Fichier : templates/hosts.j2 (/etc/hosts généré dynamiquement)
+   Licence : CC BY 4.0
+   ============================================================================= #}
+# Fichier /etc/hosts géré par Ansible — NE PAS MODIFIER MANUELLEMENT
+127.0.0.1       localhost
+127.0.1.1       {{ ansible_hostname }}
+
+# Serveurs de l'infrastructure
+{% for host in groups['all'] %}
+{{ hostvars[host]['ansible_host'] | default(host) }}    {{ host }}    {{ hostvars[host]['ansible_hostname'] | default(host.split('.')[0]) }}
+{% endfor %}
+
+# IPv6
+::1     localhost ip6-localhost ip6-loopback

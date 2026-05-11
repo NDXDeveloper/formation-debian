@@ -1,0 +1,26 @@
+# =============================================================================
+# Module 13 — Infrastructure as Code
+# Section 13.1.4 — Rôles, collections et Ansible Galaxy
+# Fichier : roles/nginx/tasks/main.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Point d'entrée des tâches du rôle. Pour les rôles complexes, ce fichier
+# sert d'orchestrateur qui importe des sous-fichiers thématiques.
+# =============================================================================
+---
+- name: Charger les variables spécifiques à la distribution
+  ansible.builtin.include_vars:
+    file: "{{ ansible_os_family }}.yml"
+
+- name: Installation de Nginx
+  ansible.builtin.import_tasks: install.yml
+  tags: nginx_install
+
+- name: Configuration de Nginx
+  ansible.builtin.import_tasks: configure.yml
+  tags: nginx_configure
+
+- name: Configuration des virtual hosts
+  ansible.builtin.import_tasks: vhosts.yml
+  tags: nginx_vhosts
+  when: nginx_vhosts | length > 0

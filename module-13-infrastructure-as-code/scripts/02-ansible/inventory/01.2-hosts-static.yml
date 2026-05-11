@@ -1,0 +1,79 @@
+# =============================================================================
+# Module 13 — Infrastructure as Code
+# Section 13.1.2 — Inventaires, connexions et variables
+# Fichier : inventory/hosts.yml (inventaire statique YAML — exemple complet)
+# Licence : CC BY 4.0
+# =============================================================================
+# Inventaire YAML hiérarchique avec groupes fonctionnels, géographiques et
+# de regroupement. Démontre la multi-appartenance et les groupes imbriqués
+# (children). Format recommandé depuis Ansible 2.4.
+# =============================================================================
+---
+all:
+  hosts:
+    bastion.example.com:
+  children:
+    # ---------- Groupes fonctionnels ----------
+    webservers:
+      hosts:
+        web01.example.com:
+          ansible_port: 2222
+          http_port: 8080
+        web02.example.com:
+          ansible_port: 22
+          http_port: 80
+        web03.example.com:
+      vars:
+        ansible_user: deploy
+        nginx_version: "1.26"
+        document_root: /var/www/html
+
+    dbservers:
+      hosts:
+        db01.example.com:
+        db02.example.com:
+      vars:
+        ansible_user: dbadmin
+        postgresql_version: 17
+
+    monitoring:
+      hosts:
+        prometheus.example.com:
+        grafana.example.com:
+
+    loadbalancers:
+      hosts:
+        lb01.example.com:
+        lb02.example.com:
+
+    # ---------- Groupes géographiques ----------
+    datacenter_paris:
+      hosts:
+        web01.example.com:
+        db01.example.com:
+        lb01.example.com:
+
+    datacenter_lyon:
+      hosts:
+        web02.example.com:
+        db02.example.com:
+        lb02.example.com:
+
+    # ---------- Groupes de regroupement ----------
+    # Tous les serveurs d'infrastructure
+    infrastructure:
+      children:
+        loadbalancers:
+        monitoring:
+
+    # Tous les serveurs applicatifs
+    application:
+      children:
+        webservers:
+        dbservers:
+
+    # Tous les serveurs de production
+    production:
+      children:
+        infrastructure:
+        application:
