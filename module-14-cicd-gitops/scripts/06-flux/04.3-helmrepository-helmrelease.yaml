@@ -1,0 +1,70 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.4.3 — Flux : architecture et configuration
+# Fichier : HelmRepository + HelmRelease (PostgreSQL)
+# Licence : CC BY 4.0
+# =============================================================================
+# Différence fondamentale avec ArgoCD : Flux utilise Helm en mode NATIF
+# (helm install / helm upgrade via le SDK Helm). Les releases sont
+# visibles via `helm list`, les hooks Helm fonctionnent correctement.
+#
+# `chart.spec.version: "16.3.x"` : semver range, le Source Controller résout
+# la dernière version compatible automatiquement.
+# `valuesFrom` : injection de valeurs depuis un Secret K8s (mot de passe non
+# stocké en clair dans Git).
+# `upgrade.remediation` : retry et rollback automatique en cas d'échec.
+#
+# Note : le catalogue Bitnami gratuit a été fermé en août 2025. Pour de
+# nouveaux déploiements, préférer un chart officiel (ex. cloudnative-pg/charts
+# pour PostgreSQL) ou le catalogue OCI Chainguard (oci://cgr.dev/chainguard/charts).
+# =============================================================================
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: bitnami
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://charts.bitnami.com/bitnami
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: postgresql
+  namespace: databases
+spec:
+  interval: 30m
+
+  chart:
+    spec:
+      chart: postgresql
+      version: "16.3.x"     # Semver range : dernière 16.3.x
+      sourceRef:
+        kind: HelmRepository
+        name: bitnami
+        namespace: flux-system
+      interval: 12h
+
+  values:
+    auth:
+      database: myapp
+    primary:
+      persistence:
+        size: 20Gi
+    metrics:
+      enabled: true
+
+  valuesFrom:
+    - kind: Secret
+      name: postgresql-credentials
+      valuesKey: password
+      targetPath: auth.postgresPassword
+
+  upgrade:
+    remediation:
+      retries: 3
+      remediateLastFailure: true    # Rollback automatique
+
+  uninstall:
+    keepHistory: false

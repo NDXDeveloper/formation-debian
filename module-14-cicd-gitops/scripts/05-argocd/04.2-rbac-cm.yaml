@@ -1,0 +1,36 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.4.2 — ArgoCD (RBAC)
+# Fichier : ConfigMap argocd-rbac-cm — politiques Casbin
+# Licence : CC BY 4.0
+# =============================================================================
+# Politiques RBAC d'ArgoCD au format Casbin :
+#   - p, <subject>, <resource>, <action>, <object>, <effect>
+#   - g, <user/group>, <role>
+#
+# `policy.default: role:readonly` garantit qu'un utilisateur non explicitement
+# autorisé a un accès en lecture seule. Indispensable en production.
+# =============================================================================
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-rbac-cm
+  namespace: argocd
+data:
+  policy.default: role:readonly
+  policy.csv: |
+    # Les admins plateforme ont tous les droits
+    g, platform-admins, role:admin
+
+    # Les développeurs backend peuvent voir et synchroniser leurs apps
+    p, role:backend-dev, applications, get, team-backend/*, allow
+    p, role:backend-dev, applications, sync, team-backend/*, allow
+    p, role:backend-dev, applications, action/*, team-backend/*, allow
+    g, backend-developers, role:backend-dev
+
+    # Les ops peuvent voir tout et synchroniser la production
+    p, role:ops, applications, get, */*, allow
+    p, role:ops, applications, sync, */*, allow
+    p, role:ops, logs, get, */*, allow
+    g, ops-team, role:ops

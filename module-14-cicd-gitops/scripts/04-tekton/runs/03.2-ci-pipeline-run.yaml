@@ -1,0 +1,41 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.3.2 — Tekton Pipelines
+# Fichier : PipelineRun — exécution du pipeline ci-pipeline
+# Licence : CC BY 4.0
+# =============================================================================
+# Le PipelineRun est l'instance d'exécution d'un Pipeline (analogie : un
+# Pod créé par un Deployment). Points notables :
+#   - generateName : suffixe aléatoire pour éviter les conflits de noms
+#   - volumeClaimTemplate : PVC éphémère, supprimé en fin de PipelineRun
+#   - Les secrets sont montés directement comme workspaces
+# =============================================================================
+---
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: ci-pipeline-run-
+  namespace: ci
+spec:
+  pipelineRef:
+    name: ci-pipeline
+  params:
+    - name: repo-url
+      value: "https://gitlab.example.com/team/myapp.git"
+    - name: revision
+      value: "a3f7b2c"
+    - name: image
+      value: "registry.example.com/myapp:a3f7b2c"
+  workspaces:
+    - name: shared-workspace
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi
+          storageClassName: local-path
+    - name: docker-credentials
+      secret:
+        secretName: docker-registry-credentials

@@ -1,0 +1,35 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.4.3 — Flux (déchiffrement SOPS natif)
+# Fichier : Kustomization avec déchiffrement SOPS
+# Licence : CC BY 4.0
+# =============================================================================
+# Flux intègre nativement SOPS : les fichiers chiffrés dans le dépôt Git
+# sont déchiffrés automatiquement par le Kustomize Controller au moment
+# de la réconciliation, sans composant ni plugin supplémentaire.
+#
+# La clé privée age est stockée comme Secret K8s dans flux-system :
+#   kubectl create secret generic sops-age-key \
+#     --namespace flux-system \
+#     --from-file=age.agekey=age.key
+#
+# Avantage vs ArgoCD : intégration native (un seul `decryption.provider`).
+# ArgoCD nécessite un Config Management Plugin en sidecar plus complexe.
+# =============================================================================
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: myapp-staging
+  namespace: flux-system
+spec:
+  sourceRef:
+    kind: GitRepository
+    name: myapp-config
+  path: ./overlays/staging
+  prune: true
+  interval: 10m
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age-key    # Secret contenant la clé de déchiffrement

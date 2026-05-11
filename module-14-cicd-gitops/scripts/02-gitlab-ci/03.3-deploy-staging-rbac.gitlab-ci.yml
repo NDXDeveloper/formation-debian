@@ -1,0 +1,27 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.3.3 — GitLab CI avec runners Kubernetes
+# Fichier : .gitlab-ci.yml — déploiement staging avec ServiceAccount dédié
+# Licence : CC BY 4.0
+# =============================================================================
+# Pattern de déploiement K8s depuis un pipeline GitLab CI :
+#   - L'image cgr.dev/chainguard/kubectl est minimale et à jour (Wolfi).
+#     Bitnami a déplacé son catalogue gratuit vers bitnamilegacy/kubectl
+#     le 28/08/2025 — éviter pour les nouveaux pipelines.
+#   - KUBERNETES_SERVICE_ACCOUNT_OVERWRITE remplace le SA par défaut du
+#     runner par un SA dédié au déploiement, avec un RoleBinding sur le
+#     namespace cible (staging) — principe du moindre privilège.
+#   - L'override n'est accepté que si le runner l'autorise via
+#     `service_account_overwrite_allowed = "ci-.*"`.
+#   - Les rules: remplacent only/except (déprécié dans GitLab récent).
+# =============================================================================
+---
+deploy-staging:
+  stage: deploy
+  image: cgr.dev/chainguard/kubectl:latest
+  variables:
+    KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: "ci-deployer"
+  script:
+    - kubectl apply -f manifests/ -n staging
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"

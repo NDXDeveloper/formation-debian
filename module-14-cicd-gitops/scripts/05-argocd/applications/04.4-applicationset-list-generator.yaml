@@ -1,0 +1,56 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.4.4 — Déploiement multi-environnement
+# Fichier : ApplicationSet — générateur list, 3 environnements en un manifeste
+# Licence : CC BY 4.0
+# =============================================================================
+# Une ApplicationSet remplace N Applications dupliquées. Subtilité importante :
+# la substitution {{...}} dans `template:` n'opère que sur les champs string.
+# Pour interpoler un booléen (prune, selfHeal), utiliser `goTemplate: true`
+# combiné à `templatePatch` qui rend le YAML par Go template AVANT parse.
+# =============================================================================
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: myapp
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - list:
+        elements:
+          - env: dev
+            revision: main
+            prune: true
+          - env: staging
+            revision: main
+            prune: true
+          - env: production
+            revision: v2.4.0
+            prune: false      # Pas de prune en production : prudence
+
+  template:
+    metadata:
+      name: "myapp-{{.env}}"
+    spec:
+      project: team-backend
+      source:
+        repoURL: https://gitlab.example.com/team/myapp-config.git
+        targetRevision: "{{.revision}}"
+        path: "overlays/{{.env}}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{.env}}"
+      syncPolicy:
+        automated:
+          selfHeal: true       # Booléen statique : OK dans `template:`
+        syncOptions:
+          - CreateNamespace=true
+  # `prune` est un booléen et nécessite templatePatch (rendu YAML par Go template)
+  templatePatch: |
+    spec:
+      syncPolicy:
+        automated:
+          prune: {{ .prune }}

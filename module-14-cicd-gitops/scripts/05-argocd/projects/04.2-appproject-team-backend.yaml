@@ -1,0 +1,63 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.4.2 — ArgoCD (multi-tenancy)
+# Fichier : AppProject — segmentation par équipe avec RBAC granulaire
+# Licence : CC BY 4.0
+# =============================================================================
+# Les AppProjects partitionnent ArgoCD par équipe/domaine. Chaque projet
+# définit :
+#   - sourceRepos     : dépôts Git autorisés
+#   - destinations    : namespaces/clusters autorisés
+#   - whitelist/blacklist : types de ressources Kubernetes autorisés/interdits
+#   - roles + policies : RBAC interne au projet (syntaxe Casbin)
+#
+# Le projet `default` créé à l'installation est volontairement permissif.
+# En production, le restreindre ou le remplacer par des projets spécifiques.
+# =============================================================================
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: team-backend
+  namespace: argocd
+spec:
+  description: "Applications backend — équipe API"
+
+  # Sources autorisées
+  sourceRepos:
+    - "https://gitlab.example.com/backend/*"
+
+  # Destinations autorisées
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: "backend-*"
+
+  # Types de ressources autorisés
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: "apps"
+      kind: Deployment
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: Secret
+    - group: "networking.k8s.io"
+      kind: Ingress
+
+  # Types de ressources interdits
+  namespaceResourceBlacklist:
+    - group: ""
+      kind: ResourceQuota     # Géré par l'équipe plateforme
+
+  # Rôles RBAC du projet
+  roles:
+    - name: developer
+      policies:
+        - p, proj:team-backend:developer, applications, get, team-backend/*, allow
+        - p, proj:team-backend:developer, applications, sync, team-backend/*, allow
+      groups:
+        - backend-developers     # Groupe OIDC / LDAP

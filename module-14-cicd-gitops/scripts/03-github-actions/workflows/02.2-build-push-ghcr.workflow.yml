@@ -1,0 +1,39 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.2.2 — GitHub Actions self-hosted runner sur Debian
+# Fichier : .github/workflows/build-push-ghcr.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Construction et publication d'une image Docker vers GitHub Container
+# Registry (ghcr.io). GITHUB_TOKEN est en lecture seule par défaut sur les
+# packages — `packages: write` est requis pour pousser.
+#
+# Sur un runner self-hosted avec accès au démon Docker local, aucun setup
+# DinD nécessaire. Pour pinner par SHA (recommandé suite à l'incident
+# trivy-action de mars 2026), remplacer @v6 par @<sha-immuable>.
+# =============================================================================
+---
+name: build-push-ghcr
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+jobs:
+  build:
+    runs-on: [self-hosted, debian, docker]
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v7
+        with:
+          push: true
+          tags: ghcr.io/${{ github.repository }}:${{ github.sha }}

@@ -1,0 +1,34 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.2.1 — GitLab Runner comme service systemd sur Debian
+# Fichier : timer + service systemd pour le nettoyage Docker périodique
+# Licence : CC BY 4.0
+# =============================================================================
+# Trois fichiers concaténés pour ergonomie pédagogique :
+#   - /etc/systemd/system/docker-cleanup.timer
+#   - /etc/systemd/system/docker-cleanup.service
+#
+# Activation : sudo systemctl enable --now docker-cleanup.timer
+# Le nettoyage supprime images non utilisées, conteneurs arrêtés, volumes
+# orphelins et réseaux inutilisés datant de plus de 72 heures.
+# =============================================================================
+
+# ----- /etc/systemd/system/docker-cleanup.timer -----
+[Unit]
+Description=Nettoyage Docker périodique
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=1800
+
+[Install]
+WantedBy=timers.target
+
+# ----- /etc/systemd/system/docker-cleanup.service -----
+# [Unit]
+# Description=Nettoyage Docker
+#
+# [Service]
+# Type=oneshot
+# ExecStart=/usr/bin/docker system prune -af --filter "until=72h"

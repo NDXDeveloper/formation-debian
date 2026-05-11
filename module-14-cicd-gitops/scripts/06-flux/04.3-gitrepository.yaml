@@ -1,0 +1,25 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.4.3 — Flux : architecture et configuration
+# Fichier : GitRepository — source Git surveillée par le Source Controller
+# Licence : CC BY 4.0
+# =============================================================================
+# Le GitRepository indique au Source Controller quel dépôt Git surveiller.
+# `interval` : fréquence de polling (5m). Peut être complété par un webhook
+# pour une réaction quasi instantanée.
+# `ref` : peut être branche, tag, semver (">=2.0.0 <3.0.0") ou commit SHA.
+# `secretRef` : référence un Secret K8s contenant les credentials d'accès.
+# =============================================================================
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: myapp-config
+  namespace: flux-system
+spec:
+  interval: 5m
+  url: https://gitlab.example.com/team/myapp-config.git
+  ref:
+    branch: main
+  secretRef:
+    name: gitlab-credentials

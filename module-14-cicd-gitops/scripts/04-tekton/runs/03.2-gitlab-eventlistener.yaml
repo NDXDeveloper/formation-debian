@@ -1,0 +1,95 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.3.2 — Tekton Pipelines (Tekton Triggers)
+# Fichier : EventListener + TriggerBinding + TriggerTemplate pour GitLab
+# Licence : CC BY 4.0
+# =============================================================================
+# Triple manifeste qui transforme un webhook GitLab en PipelineRun :
+#   1. EventListener : pod exposant l'endpoint HTTP qui reçoit les webhooks
+#   2. TriggerBinding : extrait les données du payload (URL, commit SHA, ...)
+#   3. TriggerTemplate : crée le PipelineRun à partir des paramètres extraits
+#
+# Interceptor `gitlab` valide le secret token transmis dans X-Gitlab-Token.
+# L'EventListener doit être exposé via un Ingress et son URL configurée
+# comme webhook dans GitLab (Settings → Webhooks).
+# =============================================================================
+---
+# 1. EventListener — reçoit les webhooks GitLab
+apiVersion: triggers.tekton.dev/v1beta1
+kind: EventListener
+metadata:
+  name: gitlab-listener
+  namespace: ci
+spec:
+  serviceAccountName: tekton-triggers-sa
+  triggers:
+    - name: gitlab-push
+      interceptors:
+        - ref:
+            name: "gitlab"
+          params:
+            - name: "secretRef"
+              value:
+                secretName: gitlab-webhook-secret
+                secretKey: token
+            - name: "eventTypes"
+              value: ["Push Hook", "Merge Request Hook"]
+      bindings:
+        - ref: gitlab-push-binding
+      template:
+        ref: ci-pipeline-template
+---
+# 2. TriggerBinding — extrait les données du payload GitLab
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: gitlab-push-binding
+  namespace: ci
+spec:
+  params:
+    # GitLab expose git_http_url dans `project` (l'objet `repository` est
+    # déprécié par GitLab au profit de `project`).
+    - name: repo-url
+      value: $(body.project.git_http_url)
+    - name: revision
+      value: $(body.checkout_sha)
+    - name: project-name
+      value: $(body.project.name)
+---
+# 3. TriggerTemplate — crée le PipelineRun
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: ci-pipeline-template
+  namespace: ci
+spec:
+  params:
+    - name: repo-url
+    - name: revision
+    - name: project-name
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1
+      kind: PipelineRun
+      metadata:
+        generateName: $(tt.params.project-name)-run-
+      spec:
+        pipelineRef:
+          name: ci-pipeline
+        params:
+          - name: repo-url
+            value: $(tt.params.repo-url)
+          - name: revision
+            value: $(tt.params.revision)
+          - name: image
+            value: "registry.example.com/$(tt.params.project-name):$(tt.params.revision)"
+        workspaces:
+          - name: shared-workspace
+            volumeClaimTemplate:
+              spec:
+                accessModes: ["ReadWriteOnce"]
+                resources:
+                  requests:
+                    storage: 1Gi
+          - name: docker-credentials
+            secret:
+              secretName: docker-registry-credentials

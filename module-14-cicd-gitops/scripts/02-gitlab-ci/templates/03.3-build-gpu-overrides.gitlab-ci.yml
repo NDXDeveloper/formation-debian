@@ -1,0 +1,33 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.3.3 — GitLab CI avec runners Kubernetes
+# Fichier : .gitlab-ci.yml — job GPU avec surcharges Kubernetes
+# Licence : CC BY 4.0
+# =============================================================================
+# Démontre les surcharges KUBERNETES_* qui permettent à un job de demander
+# des ressources spécifiques sans multiplier les configurations runner.
+# Note : NVIDIA ne publie pas d'image CUDA basée sur Debian — les variantes
+# officielles sont Ubuntu et UBI/RHEL.
+#
+# Les variables avec suffixe libre (NODE_SELECTOR_GPU, POD_ANNOTATIONS_1)
+# acceptent une valeur clé=valeur ; chaque suffixe = une entrée distincte
+# dans la PodSpec. Le runner doit autoriser ces overrides via
+# `node_selector_overwrite_allowed` et `pod_annotations_overwrite_allowed`.
+# =============================================================================
+---
+build-gpu:
+  image: nvidia/cuda:13.1.0-devel-ubuntu24.04
+  variables:
+    KUBERNETES_CPU_REQUEST: "4"
+    KUBERNETES_CPU_LIMIT: "8"
+    KUBERNETES_MEMORY_REQUEST: "16Gi"
+    KUBERNETES_MEMORY_LIMIT: "32Gi"
+    # Node selector : préfixe KUBERNETES_NODE_SELECTOR_ + suffixe libre
+    KUBERNETES_NODE_SELECTOR_GPU: "gpu=nvidia"
+    # Annotations : préfixe KUBERNETES_POD_ANNOTATIONS_ + suffixe (numérique ou libre)
+    KUBERNETES_POD_ANNOTATIONS_1: "nvidia.com/gpu=1"
+  tags:
+    - kubernetes
+  script:
+    - nvidia-smi
+    - make build-cuda

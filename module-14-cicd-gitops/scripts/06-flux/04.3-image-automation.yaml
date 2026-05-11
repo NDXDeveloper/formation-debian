@@ -1,0 +1,65 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.4.3 — Flux (Image Automation)
+# Fichier : ImageRepository + ImagePolicy + ImageUpdateAutomation
+# Licence : CC BY 4.0
+# =============================================================================
+# Image Automation Flux ferme la boucle CI/CD sans intervention du pipeline :
+#   1. ImageRepository       : surveille un registry Docker
+#   2. ImagePolicy           : sélectionne le tag selon une stratégie (semver)
+#   3. ImageUpdateAutomation : commite la mise à jour dans Git
+#
+# Les manifestes ciblés portent un commentaire marqueur :
+#   image: registry.example.com/myapp:v2.3.0 # {"$imagepolicy": "flux-system:myapp"}
+# =============================================================================
+---
+# 1. Surveillance du registry
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: myapp
+  namespace: flux-system
+spec:
+  image: registry.example.com/myapp
+  interval: 5m
+  secretRef:
+    name: registry-credentials
+---
+# 2. Politique de sélection des tags
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: myapp
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: myapp
+  policy:
+    semver:
+      range: ">=2.0.0 <3.0.0"    # Dernière version 2.x.x
+---
+# 3. Mise à jour automatique dans Git
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageUpdateAutomation
+metadata:
+  name: myapp-update
+  namespace: flux-system
+spec:
+  interval: 30m
+  sourceRef:
+    kind: GitRepository
+    name: myapp-config
+  git:
+    checkout:
+      ref:
+        branch: main
+    commit:
+      author:
+        name: flux-image-updater
+        email: flux@example.com
+      messageTemplate: "chore: update {{.AutomationObject}} images"
+    push:
+      branch: main
+  update:
+    strategy: Setters
+    path: ./overlays/staging

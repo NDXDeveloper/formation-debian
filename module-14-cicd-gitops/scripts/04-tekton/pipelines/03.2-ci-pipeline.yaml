@@ -1,0 +1,110 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.3.2 — Tekton Pipelines
+# Fichier : Pipeline `ci-pipeline` — workflow complet build/test/scan/deploy
+# Licence : CC BY 4.0
+# =============================================================================
+# Pipeline orchestrant 6 Tasks avec dépendances :
+#   1. clone               (toujours en premier)
+#   2a. unit-tests + 2b. lint    (en parallèle après clone)
+#   3. build               (après unit-tests ET lint)
+#   4. security-scan       (après build)
+#   5. deploy-staging      (après security-scan)
+#
+# Les Tasks sans dépendance mutuelle (runAfter) s'exécutent en parallèle.
+# `$(tasks.build.results.image-digest)` chaîne les valeurs entre Tasks.
+# =============================================================================
+---
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: ci-pipeline
+  namespace: ci
+spec:
+  params:
+    - name: repo-url
+      type: string
+    - name: revision
+      type: string
+      default: "main"
+    - name: image
+      type: string
+
+  workspaces:
+    - name: shared-workspace
+    - name: docker-credentials
+
+  tasks:
+    # Étape 1 : Cloner le code source
+    - name: clone
+      taskRef:
+        name: git-clone
+      params:
+        - name: url
+          value: $(params.repo-url)
+        - name: revision
+          value: $(params.revision)
+      workspaces:
+        - name: output
+          workspace: shared-workspace
+
+    # Étapes 2a et 2b : Tests et lint en parallèle (pas de runAfter entre eux)
+    - name: unit-tests
+      taskRef:
+        name: run-tests
+      runAfter:
+        - clone
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+
+    - name: lint
+      taskRef:
+        name: run-lint
+      runAfter:
+        - clone
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+
+    # Étape 3 : Build (après tests ET lint)
+    - name: build
+      taskRef:
+        name: build-and-push
+      runAfter:
+        - unit-tests
+        - lint
+      params:
+        - name: image
+          value: $(params.image)
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+        - name: docker-credentials
+          workspace: docker-credentials
+
+    # Étape 4 : Scan de sécurité
+    - name: security-scan
+      taskRef:
+        name: trivy-scan
+      runAfter:
+        - build
+      params:
+        - name: image
+          value: $(params.image)
+        - name: digest
+          value: $(tasks.build.results.image-digest)
+
+    # Étape 5 : Déploiement staging
+    - name: deploy-staging
+      taskRef:
+        name: helm-deploy
+      runAfter:
+        - security-scan
+      params:
+        - name: release-name
+          value: "myapp"
+        - name: namespace
+          value: "staging"
+        - name: image-tag
+          value: $(params.revision)

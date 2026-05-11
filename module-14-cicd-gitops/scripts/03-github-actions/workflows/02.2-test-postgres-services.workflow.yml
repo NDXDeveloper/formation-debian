@@ -1,0 +1,40 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.2.2 — GitHub Actions self-hosted runner sur Debian
+# Fichier : .github/workflows/test-postgres-services.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Job conteneurisé avec services PostgreSQL et Redis. Les services sont
+# accessibles par leur nom (postgres, redis) grâce au réseau Docker créé
+# automatiquement par le runner pour le job.
+# =============================================================================
+---
+name: test-postgres-services
+
+on:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: [self-hosted, debian, docker]
+    container:
+      image: python:3.14-slim-trixie
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: testpassword
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:8
+        ports:
+          - 6379:6379
+    steps:
+      - uses: actions/checkout@v6
+      - run: pytest --db-host postgres --redis-host redis

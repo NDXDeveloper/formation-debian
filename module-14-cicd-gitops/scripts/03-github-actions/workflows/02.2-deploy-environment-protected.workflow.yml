@@ -1,0 +1,30 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.2.2 — GitHub Actions self-hosted runner sur Debian
+# Fichier : .github/workflows/deploy-environment-protected.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Déploiement vers un environnement GitHub protégé (production). Les
+# environnements ajoutent une couche de contrôle :
+#   - Approbation requise avant exécution
+#   - Secrets disponibles uniquement pour cet environnement
+#   - Restriction aux branches autorisées
+# =============================================================================
+---
+name: deploy-environment-protected
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy-production:
+    runs-on: [self-hosted, debian]
+    environment:
+      name: production
+      url: https://app.example.com
+    steps:
+      - uses: actions/checkout@v6
+      - run: kubectl apply -f manifests/
+        env:
+          KUBECONFIG: ${{ secrets.KUBECONFIG_PROD }}

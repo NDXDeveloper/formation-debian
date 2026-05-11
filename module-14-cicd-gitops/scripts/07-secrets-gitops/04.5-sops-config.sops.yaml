@@ -1,0 +1,29 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.4.5 — Gestion des secrets en GitOps (SOPS)
+# Fichier : .sops.yaml — règles de chiffrement par chemin
+# Licence : CC BY 4.0
+# =============================================================================
+# Ce fichier est commité à la racine du config repo : il ne contient que
+# des clés publiques age, donc safe to commit. Les règles sont évaluées
+# en ordre — la PREMIÈRE qui matche le path du fichier s'applique.
+#
+# `encrypted_regex: '^(data|stringData)$'` limite le chiffrement aux seuls
+# champs `data`/`stringData` d'un Secret K8s. Le reste reste en clair, ce
+# qui rend les diffs de merge requests parlants (on voit immédiatement
+# quel Secret a été modifié sans devoir déchiffrer).
+# =============================================================================
+---
+creation_rules:
+  # Secrets de staging — clé staging
+  - path_regex: 'overlays/staging/.*\.secret\.yaml$'
+    encrypted_regex: '^(data|stringData)$'
+    age: age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
+
+  # Secrets de production — clé différente (séparation des environnements)
+  - path_regex: 'overlays/production/.*\.secret\.yaml$'
+    encrypted_regex: '^(data|stringData)$'
+    age: age1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+  # Règle par défaut (sans encrypted_regex : tout sauf les clés YAML est chiffré)
+  - age: age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p

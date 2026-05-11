@@ -1,0 +1,39 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.4.2 — ArgoCD (Image Updater)
+# Fichier : Application avec annotations argocd-image-updater
+# Licence : CC BY 4.0
+# =============================================================================
+# ArgoCD Image Updater surveille un container registry et met à jour
+# automatiquement le tag d'image dans le dépôt de configuration GitOps.
+# Évite le couplage CI/config repo où le pipeline doit cloner/commiter
+# le config repo après chaque build.
+#
+# Stratégies disponibles : semver (défaut), newest-build, digest, alphabetical.
+# Avec `write-back-method: git`, l'Updater commite directement dans le
+# dépôt de configuration — Git reste la source de vérité.
+# =============================================================================
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: myapp-staging
+  namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: myapp=registry.example.com/myapp
+    argocd-image-updater.argoproj.io/myapp.update-strategy: semver
+    argocd-image-updater.argoproj.io/myapp.allow-tags: "regexp:^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    argocd-image-updater.argoproj.io/write-back-method: git
+spec:
+  project: team-backend
+  source:
+    repoURL: https://gitlab.example.com/team/myapp-config.git
+    targetRevision: main
+    path: overlays/staging
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: staging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

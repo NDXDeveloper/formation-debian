@@ -1,0 +1,37 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.4.4 — Déploiement multi-environnement
+# Fichier : ApplicationSet — générateur git directory (auto-découverte)
+# Licence : CC BY 4.0
+# =============================================================================
+# Le générateur Git directory scanne le dépôt et crée une Application pour
+# chaque sous-répertoire matchant le pattern. Ajouter un nouvel environnement
+# = créer un nouveau répertoire dans overlays/ — l'ApplicationSet crée
+# automatiquement l'Application correspondante (zéro modification YAML).
+# =============================================================================
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: myapp-environments
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: https://gitlab.example.com/team/myapp-config.git
+        revision: main
+        directories:
+          - path: overlays/*
+
+  template:
+    metadata:
+      name: "myapp-{{path.basename}}"
+    spec:
+      project: team-backend
+      source:
+        repoURL: https://gitlab.example.com/team/myapp-config.git
+        targetRevision: main
+        path: "{{path}}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{path.basename}}"

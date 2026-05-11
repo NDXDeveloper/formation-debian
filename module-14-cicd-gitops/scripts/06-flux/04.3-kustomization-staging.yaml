@@ -1,0 +1,40 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.4.3 — Flux : architecture et configuration
+# Fichier : Kustomization Flux — déploiement staging avec health checks
+# Licence : CC BY 4.0
+# =============================================================================
+# La ressource Kustomization Flux (à ne pas confondre avec le kustomization.yaml
+# de Kustomize) indique au Kustomize Controller :
+#   - quoi déployer (sourceRef + path)
+#   - où (targetNamespace)
+#   - comment vérifier la santé (healthChecks)
+#
+# `prune: true` : supprime les ressources qui disparaissent du dépôt Git.
+# `interval` : fréquence de réconciliation (10m).
+# =============================================================================
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: myapp-staging
+  namespace: flux-system
+spec:
+  interval: 10m
+  retryInterval: 2m
+  timeout: 5m
+
+  sourceRef:
+    kind: GitRepository
+    name: myapp-config
+
+  path: ./overlays/staging
+  prune: true
+
+  targetNamespace: staging
+
+  healthChecks:
+    - apiVersion: apps/v1
+      kind: Deployment
+      name: myapp
+      namespace: staging

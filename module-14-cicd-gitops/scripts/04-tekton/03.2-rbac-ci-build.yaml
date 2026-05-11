@@ -1,0 +1,43 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.3.2 — Tekton Pipelines (sécurité)
+# Fichier : ServiceAccount + Role + RoleBinding pour les Tasks de build
+# Licence : CC BY 4.0
+# =============================================================================
+# Principe du moindre privilège : le SA `ci-build-sa` n'a que le droit de
+# lire un Secret précis (les credentials du registry Docker). Aucun accès
+# au cluster, aux autres namespaces, ni aux secrets supplémentaires.
+# Un autre ServiceAccount, plus permissif, est utilisé pour les Tasks de
+# déploiement.
+# =============================================================================
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ci-build-sa
+  namespace: ci
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ci-build-role
+  namespace: ci
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["docker-registry-credentials"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ci-build-binding
+  namespace: ci
+subjects:
+  - kind: ServiceAccount
+    name: ci-build-sa
+    namespace: ci          # Bonne pratique : toujours expliciter le namespace
+roleRef:
+  kind: Role
+  name: ci-build-role
+  apiGroup: rbac.authorization.k8s.io

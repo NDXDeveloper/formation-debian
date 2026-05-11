@@ -1,0 +1,89 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.3.3 — GitLab CI avec runners Kubernetes
+# Fichier : runner-values.yaml — chart Helm gitlab/gitlab-runner
+# Licence : CC BY 4.0
+# =============================================================================
+# Configuration de référence pour un GitLab Runner avec executor Kubernetes.
+# Le token est fourni via un Secret K8s (gitlab-runner-secret) plutôt qu'en
+# clair dans ce fichier — voir create-secret.sh pour la génération du Secret.
+#
+# Installation :
+#   helm install gitlab-runner gitlab/gitlab-runner \
+#     --namespace gitlab-runner --create-namespace \
+#     --values runner-values.yaml
+# =============================================================================
+---
+gitlabUrl: "https://gitlab.example.com/"
+
+runners:
+  secret: gitlab-runner-secret
+
+  config: |
+    [[runners]]
+      name = "k8s-runner"
+      executor = "kubernetes"
+
+      [runners.kubernetes]
+        namespace = "ci-jobs"
+        image = "debian:trixie-slim"
+
+        cpu_request = "500m"
+        cpu_limit = "2"
+        memory_request = "512Mi"
+        memory_limit = "2Gi"
+
+        helper_cpu_request = "100m"
+        helper_cpu_limit = "500m"
+        helper_memory_request = "128Mi"
+        helper_memory_limit = "512Mi"
+
+        service_cpu_request = "250m"
+        service_cpu_limit = "1"
+        service_memory_request = "256Mi"
+        service_memory_limit = "1Gi"
+
+        pull_policy = ["if-not-present"]
+        privileged = false
+        allow_privilege_escalation = false
+
+        cleanup_grace_period_seconds = 60
+        pod_termination_grace_period_seconds = 300
+
+        [runners.kubernetes.dns_config]
+          options = [
+            { name = "ndots", value = "1" }
+          ]
+
+concurrent: 10
+checkInterval: 3
+
+rbac:
+  create: true
+  rules:
+    - apiGroups: [""]
+      resources: ["pods", "secrets", "configmaps"]
+      verbs: ["get", "list", "watch", "create", "delete", "update"]
+    - apiGroups: [""]
+      resources: ["pods/exec", "pods/log", "pods/attach"]
+      verbs: ["get", "create"]
+    - apiGroups: [""]
+      resources: ["events"]
+      verbs: ["list", "watch"]
+
+serviceAccount:
+  create: true
+  name: gitlab-runner
+
+resources:
+  requests:
+    cpu: "250m"
+    memory: "256Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+
+metrics:
+  enabled: true
+  portName: metrics
+  port: 9252

@@ -1,0 +1,47 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.3.2 — Tekton Pipelines (nettoyage)
+# Fichier : TektonPruner + ConfigMap de politique de rétention
+# Licence : CC BY 4.0
+# =============================================================================
+# Tekton Pruner (introduit février 2026 par Red Hat) — contrôleur événementiel
+# qui évalue les ressources dès leur achèvement et applique des politiques
+# de rétention hiérarchiques (cluster → namespace → label).
+#
+# Approche recommandée en 2026 vs l'ancien pruner CronJob du Tekton Operator.
+# Coopère avec Tekton Results pour l'archivage long terme.
+# =============================================================================
+---
+# 1. Activation du composant via le CR TektonPruner
+apiVersion: operator.tekton.dev/v1alpha1
+kind: TektonPruner
+metadata:
+  name: pruner
+spec:
+  disabled: false
+  targetNamespace: tekton-pipelines
+---
+# 2. Politique de rétention détaillée via ConfigMap (les champs riches —
+#    history, TTL, sélecteurs par label — sont configurés ici, pas dans
+#    la spec du CR ci-dessus)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tekton-pruner-namespace-spec
+  namespace: ci
+  labels:
+    app.kubernetes.io/part-of: tekton-pruner
+    pruner.tekton.dev/config-type: namespace
+data:
+  ns-config: |
+    pipelineRuns:
+      - selector:
+          matchLabels:
+            app: critical-service
+        ttlSecondsAfterFinished: 604800     # 7 jours pour les runs critiques
+        successfulHistoryLimit: 50
+      - selector:
+          matchLabels:
+            app: test-jobs
+        ttlSecondsAfterFinished: 300        # 5 minutes pour les tests
+        successfulHistoryLimit: 3

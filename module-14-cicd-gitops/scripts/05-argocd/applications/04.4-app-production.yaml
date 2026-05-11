@@ -1,0 +1,31 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.4.4 — Déploiement multi-environnement
+# Fichier : Application ArgoCD pour l'environnement `production`
+# Licence : CC BY 4.0
+# =============================================================================
+# Différences vs dev/staging :
+#   - targetRevision : tag Git fixe (promotion manuelle ou par processus
+#     contrôlé), pas la branche main
+#   - automated.prune : false par mesure de prudence (ne supprime jamais
+#     automatiquement une ressource du cluster)
+# =============================================================================
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: myapp-production
+  namespace: argocd
+spec:
+  project: team-backend
+  source:
+    repoURL: https://gitlab.example.com/team/myapp-config.git
+    targetRevision: v2.4.0    # Tag fixe pour la production
+    path: overlays/production
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  syncPolicy:
+    automated:
+      prune: false            # Prudence en production
+      selfHeal: true

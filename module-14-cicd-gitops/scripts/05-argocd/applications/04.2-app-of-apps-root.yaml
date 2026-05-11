@@ -1,0 +1,33 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.4.2 — ArgoCD (App of Apps)
+# Fichier : Application racine — pattern App of Apps
+# Licence : CC BY 4.0
+# =============================================================================
+# Pattern App of Apps : une Application racine qui pointe vers un répertoire
+# contenant d'autres Applications. ArgoCD se gère lui-même par GitOps.
+#
+# Le répertoire `apps/` contient un fichier YAML par Application déployée
+# sur le cluster (myapp-staging.yaml, monitoring.yaml, ingress-nginx.yaml,
+# cert-manager.yaml, argocd.yaml...). Ajouter une nouvelle application au
+# cluster = ajouter un fichier dans ce répertoire et pousser le commit.
+# =============================================================================
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://gitlab.example.com/platform/cluster-config.git
+    targetRevision: main
+    path: apps/
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

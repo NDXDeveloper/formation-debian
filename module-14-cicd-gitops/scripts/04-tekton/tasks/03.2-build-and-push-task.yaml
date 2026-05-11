@@ -1,0 +1,69 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.3.2 — Tekton Pipelines
+# Fichier : Task `build-and-push` — lint Dockerfile + build d'image
+# Licence : CC BY 4.0
+# =============================================================================
+# Démontre les concepts fondamentaux de Tekton :
+#   - params : paramètres d'entrée (rendent la Task réutilisable)
+#   - workspaces : volumes partagés entre les steps
+#   - results : valeurs de sortie consommables par les Tasks suivantes
+#   - steps : conteneurs exécutés séquentiellement dans le même pod
+#
+# Note : Kaniko a été archivé par Google en juin 2025 (cf. § 14.2.3).
+# Pour de nouveaux projets, préférer Buildah ou BuildKit (mêmes paramètres,
+# image et command à adapter).
+# =============================================================================
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: build-and-push
+  namespace: ci
+spec:
+  params:
+    - name: image
+      type: string
+      description: "Image de destination (registry/repo:tag)"
+    - name: dockerfile
+      type: string
+      default: "./Dockerfile"
+
+  workspaces:
+    - name: source
+      description: "Code source de l'application"
+    - name: docker-credentials
+      description: "Credentials du registry Docker"
+
+  results:
+    - name: image-digest
+      description: "Digest SHA256 de l'image construite"
+
+  steps:
+    - name: lint-dockerfile
+      image: hadolint/hadolint:v2.14.0-debian
+      script: |
+        #!/usr/bin/env bash
+        hadolint $(params.dockerfile) || true
+
+    - name: build-push
+      image: gcr.io/kaniko-project/executor:v1.24.0
+      env:
+        - name: DOCKER_CONFIG
+          value: /docker-config
+      command:
+        - /kaniko/executor
+      args:
+        - --context=$(workspaces.source.path)
+        - --dockerfile=$(params.dockerfile)
+        - --destination=$(params.image)
+        - --digest-file=$(results.image-digest.path)
+        - --cache=true
+      volumeMounts:
+        - name: docker-config
+          mountPath: /docker-config
+
+  volumes:
+    - name: docker-config
+      secret:
+        secretName: docker-registry-credentials

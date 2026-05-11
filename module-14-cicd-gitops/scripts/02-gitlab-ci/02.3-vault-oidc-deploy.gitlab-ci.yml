@@ -1,0 +1,38 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.2.3 — Configuration, maintenance et sécurisation des runners
+# Fichier : .gitlab-ci.yml — récupération de secrets Vault via OIDC/JWT
+# Licence : CC BY 4.0
+# =============================================================================
+# Approche déclarative GitLab + Vault :
+#   - id_tokens demande à GitLab d'émettre un JWT avec l'audience Vault
+#   - secrets : GitLab négocie avec Vault, déchiffre, injecte les variables
+#
+# Avantage : aucun secret persistant. Le JWT est valide quelques minutes,
+# révoqué dès la fin du job. Compatible HashiCorp Vault et OpenBao.
+# =============================================================================
+---
+deploy:
+  id_tokens:
+    VAULT_ID_TOKEN:
+      aud: https://vault.internal.example.com
+  secrets:
+    DB_PASSWORD:
+      vault: prod/database/password@secret
+      token: $VAULT_ID_TOKEN
+  script:
+    # DB_PASSWORD est disponible comme variable d'environnement, masquée
+    # automatiquement dans les logs.
+    - deploy-app.sh
+
+# Variante impérative — plus de contrôle, plus verbeux
+deploy-manual:
+  variables:
+    VAULT_ADDR: "https://vault.internal.example.com"
+  id_tokens:
+    VAULT_ID_TOKEN:
+      aud: https://vault.internal.example.com
+  script:
+    - export VAULT_TOKEN=$(vault write -field=token auth/jwt/login role=deploy jwt=$VAULT_ID_TOKEN)
+    - export DB_PASSWORD=$(vault kv get -field=password secret/prod/database)
+    - deploy-app.sh

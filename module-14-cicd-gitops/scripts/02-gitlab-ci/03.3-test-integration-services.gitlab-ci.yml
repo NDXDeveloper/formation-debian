@@ -1,0 +1,41 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.3.3 — GitLab CI avec runners Kubernetes
+# Fichier : .gitlab-ci.yml — tests d'intégration avec PostgreSQL + Redis
+# Licence : CC BY 4.0
+# =============================================================================
+# Avec l'executor Kubernetes, chaque service déclaré devient un conteneur
+# sidecar dans le pod du job. Ils sont accessibles par leur alias via le
+# réseau partagé du pod (et non plus le réseau Docker).
+#
+# Le before_script attend explicitement que PostgreSQL soit prêt, le
+# Kubernetes executor n'effectuant pas de readiness probe automatique
+# sur les services (différence notable avec le Docker executor).
+# =============================================================================
+---
+test-integration:
+  image: python:3.14-slim-trixie
+  services:
+    - name: postgres:18-trixie
+      alias: db
+      variables:
+        POSTGRES_DB: testdb
+        POSTGRES_USER: testuser
+        POSTGRES_PASSWORD: testpassword
+    - name: redis:8
+      alias: cache
+  variables:
+    DATABASE_URL: "postgresql://testuser:testpassword@db:5432/testdb"
+    REDIS_URL: "redis://cache:6379"
+  before_script:
+    # Attendre que PostgreSQL soit prêt (services K8s n'ont pas de health
+    # check natif, contrairement au Docker executor)
+    - |
+      for i in $(seq 1 30); do
+        pg_isready -h db -p 5432 && break
+        echo "Attente PostgreSQL ($i/30)..."
+        sleep 2
+      done
+  script:
+    - pip install -r requirements.txt
+    - pytest tests/integration/

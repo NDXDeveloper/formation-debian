@@ -1,0 +1,34 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.2.3 — Configuration, maintenance et sécurisation des runners
+# Fichier : .gitlab-ci.yml — build d'image Docker avec BuildKit rootless
+# Licence : CC BY 4.0
+# =============================================================================
+# Pipeline construisant une image Docker SANS démon Docker, SANS mode
+# privilégié et SANS socket binding. BuildKit en mode rootless utilise
+# les user namespaces du noyau pour isoler le build.
+#
+# Avantages vs DinD : pas de privileged=true, isolation forte, conforme
+# au Pod Security Standard restricted. Pattern recommandé en 2026 depuis
+# l'archivage de Kaniko (juin 2025).
+# =============================================================================
+---
+build:
+  stage: build
+  image: moby/buildkit:rootless
+  variables:
+    BUILDKITD_FLAGS: --oci-worker-no-process-sandbox
+  before_script:
+    # Format username/password : l'image rootless est basée sur Alpine
+    # dont la commande base64 ne supporte pas l'option -w0.
+    - mkdir -p ~/.docker
+    - 'echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > ~/.docker/config.json'
+  script:
+    - >
+      buildctl-daemonless.sh build
+      --frontend=dockerfile.v0
+      --local context=.
+      --local dockerfile=.
+      --output type=image,name=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA,push=true
+      --export-cache type=registry,ref=$CI_REGISTRY_IMAGE/cache
+      --import-cache type=registry,ref=$CI_REGISTRY_IMAGE/cache

@@ -1,0 +1,65 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.4.3 — Flux (multi-tenancy)
+# Fichier : Namespace + ServiceAccount + RoleBinding + Kustomization tenant
+# Licence : CC BY 4.0
+# =============================================================================
+# Multi-tenancy Flux via les mécanismes natifs Kubernetes (pas de concept
+# propriétaire comme les AppProjects ArgoCD). Chaque tenant a :
+#   - son namespace de ressources Flux
+#   - son ServiceAccount avec RBAC limité
+#   - son GitRepository pointant vers son dépôt
+#
+# `serviceAccountName` dans la Kustomization force l'application des
+# manifestes avec les permissions du SA tenant — pas celles du contrôleur
+# Flux. Si le tenant tente une action non autorisée, le RBAC K8s refuse.
+# =============================================================================
+---
+# Namespace du tenant
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: team-backend
+---
+# ServiceAccount restreint
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: team-backend-reconciler
+  namespace: team-backend
+---
+# Le tenant ne peut déployer que dans ses namespaces.
+# `edit` (R/W sur la plupart des objets du namespace, sans toucher aux
+# RBAC ni aux ResourceQuotas) plutôt que `cluster-admin` qui donnerait
+# des droits trop larges. Pour des besoins spécifiques, créer un
+# ClusterRole custom et le référencer ici.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: team-backend-reconciler
+  namespace: backend-staging
+subjects:
+  - kind: ServiceAccount
+    name: team-backend-reconciler
+    namespace: team-backend
+roleRef:
+  kind: ClusterRole
+  name: edit          # Rôle built-in moins permissif que `cluster-admin`
+  apiGroup: rbac.authorization.k8s.io
+---
+# Kustomization du tenant avec serviceAccountName
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: backend-app
+  namespace: team-backend
+spec:
+  serviceAccountName: team-backend-reconciler
+  sourceRef:
+    kind: GitRepository
+    name: backend-config
+    namespace: team-backend
+  path: ./staging
+  targetNamespace: backend-staging
+  prune: true
+  interval: 10m

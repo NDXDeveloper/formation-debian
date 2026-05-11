@@ -1,0 +1,38 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.4.2 — ArgoCD (notifications)
+# Fichier : ConfigMap argocd-notifications-cm — Slack
+# Licence : CC BY 4.0
+# =============================================================================
+# Configuration du composant Notifications d'ArgoCD pour envoyer des
+# événements vers Slack. Le token Slack est référencé via `$slack-token`,
+# une convention ArgoCD : la clé est lue depuis le Secret `argocd-notifications-secret`.
+#
+# Canaux supportés : Slack, Microsoft Teams, email, webhooks, Grafana.
+# =============================================================================
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-notifications-cm
+  namespace: argocd
+data:
+  service.slack: |
+    token: $slack-token
+
+  template.app-sync-succeeded: |
+    message: |
+      Application {{.app.metadata.name}} synced successfully.
+      Revision: {{.app.status.sync.revision}}
+
+  trigger.on-sync-succeeded: |
+    - when: app.status.operationState.phase in ['Succeeded']
+      send: [app-sync-succeeded]
+
+  subscriptions: |
+    - recipients:
+        - slack:deployments-channel
+      triggers:
+        - on-sync-succeeded
+        - on-sync-failed
+        - on-health-degraded

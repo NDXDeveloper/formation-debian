@@ -1,0 +1,77 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.2.1 — GitLab Runner comme service systemd sur Debian
+# Fichier : /etc/gitlab-runner/config.toml — runner Docker avec 2 runners
+# Licence : CC BY 4.0
+# =============================================================================
+# Configuration de référence pour un serveur Debian hébergeant deux runners :
+#   1. runner-build  : Docker executor, parallélisme élevé, mode privilégié
+#                      autorisé pour les builds Docker (DinD)
+#   2. runner-deploy : Shell executor, un seul job à la fois, accès direct
+#                      aux outils kubectl/Helm installés sur le serveur
+#
+# Le paramètre `concurrent` global limite le total tous runners confondus.
+# Le `limit` par section [[runners]] limite chaque runner individuellement.
+# =============================================================================
+
+# ----- Section globale -----
+concurrent = 6
+check_interval = 3
+log_level = "info"
+log_format = "json"
+shutdown_timeout = 300
+
+# ----- Runner 1 : build Docker -----
+[[runners]]
+  name = "runner-build"
+  url = "https://gitlab.example.com/"
+  token = "<RUNNER-AUTH-TOKEN-BUILD>"   # glrt-xxx — à remplacer
+  executor = "docker"
+  limit = 4
+  environment = [
+    "DOCKER_BUILDKIT=1",
+  ]
+
+  [runners.docker]
+    image = "debian:trixie-slim"
+    privileged = true                   # Nécessaire pour DinD
+    disable_entrypoint_overwrite = false
+    oom_kill_disable = false
+    disable_cache = false
+    volumes = ["/cache", "/certs/client"]
+    shm_size = 268435456
+    pull_policy = ["if-not-present"]
+    allowed_images = [
+      "debian:*",
+      "python:3.*-slim-*",
+      "node:24-slim",
+      "golang:1.*-trixie",
+      "docker:*",
+      "moby/buildkit:rootless",
+      "registry.internal.example.com/*",
+    ]
+    allowed_services = [
+      "postgres:*",
+      "redis:*",
+      "mysql:*",
+      "docker:*-dind",
+    ]
+
+  [runners.cache]
+    Type = "s3"
+    Shared = true
+
+    [runners.cache.s3]
+      ServerAddress = "minio.storage.svc.cluster.local:9000"
+      BucketName = "gitlab-runner-cache"
+      BucketLocation = "us-east-1"
+      Insecure = false
+      AuthenticationType = "access-key"
+
+# ----- Runner 2 : déploiement shell -----
+[[runners]]
+  name = "runner-deploy"
+  url = "https://gitlab.example.com/"
+  token = "<RUNNER-AUTH-TOKEN-DEPLOY>"  # glrt-xxx — à remplacer
+  executor = "shell"
+  limit = 1

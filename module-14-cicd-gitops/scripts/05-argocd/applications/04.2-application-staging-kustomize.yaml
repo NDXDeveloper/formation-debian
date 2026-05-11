@@ -1,0 +1,47 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.4.2 — ArgoCD
+# Fichier : Application — overlay Kustomize staging avec auto-sync + self-heal
+# Licence : CC BY 4.0
+# =============================================================================
+# Application ArgoCD complète pointant vers un overlay Kustomize :
+#   - finalizers : assure la suppression en cascade des ressources lorsque
+#     l'Application est supprimée
+#   - automated.prune : supprime les ressources qui ne sont plus dans Git
+#   - automated.selfHeal : restaure l'état Git si quelqu'un fait kubectl edit
+#   - syncOptions.CreateNamespace=true : crée le namespace si absent
+#   - retry.backoff : backoff exponentiel jusqu'à 3 tentatives
+# =============================================================================
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: myapp-staging
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://gitlab.example.com/team/myapp-config.git
+    targetRevision: main
+    path: overlays/staging
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: staging
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m

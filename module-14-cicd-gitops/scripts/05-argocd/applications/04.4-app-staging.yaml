@@ -1,0 +1,25 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.4.4 — Déploiement multi-environnement
+# Fichier : Application ArgoCD pour l'environnement `staging`
+# Licence : CC BY 4.0
+# =============================================================================
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: myapp-staging
+  namespace: argocd
+spec:
+  project: team-backend
+  source:
+    repoURL: https://gitlab.example.com/team/myapp-config.git
+    targetRevision: main
+    path: overlays/staging
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: staging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

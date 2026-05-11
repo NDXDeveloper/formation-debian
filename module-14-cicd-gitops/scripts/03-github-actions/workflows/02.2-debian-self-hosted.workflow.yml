@@ -1,0 +1,24 @@
+# =============================================================================
+# Module 14 — CI/CD et GitOps
+# Section 14.2.2 — GitHub Actions self-hosted runner sur Debian
+# Fichier : .github/workflows/debian-self-hosted.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Workflow ciblant un runner self-hosted Debian via les labels personnalisés
+# (debian, docker). Les labels self-hosted, Linux, X64 sont automatiquement
+# attribués par le runner.
+# =============================================================================
+---
+name: debian-self-hosted
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: [self-hosted, debian, docker]
+    steps:
+      - uses: actions/checkout@v6
+      - run: echo "Running on Debian self-hosted runner"
