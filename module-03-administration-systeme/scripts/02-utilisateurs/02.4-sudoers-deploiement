@@ -1,0 +1,23 @@
+#
+# Nom         : 02.4-sudoers-deploiement
+# Module      : 3 — Administration système
+# Section     : 3.2.4 — Sudo et privilèges
+# Source      : module-03-administration-systeme/02.4-sudo-privileges.md
+# Description : Profil sudo deploiement : commandes scoped pour CI/CD (systemctl
+#               restart, apt, scripts deploy).
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+User_Alias  DEPLOYERS = deployer, cicd-runner
+
+Cmnd_Alias  DEPLOY_CMDS = /srv/scripts/deploy.sh, \
+                           /srv/scripts/rollback.sh, \
+                           /usr/bin/systemctl restart app-*, \
+                           /usr/bin/systemctl reload nginx, \
+                           /usr/bin/docker compose -f /srv/app/docker-compose.yml *
+
+# Sans mot de passe (comptes de service)
+DEPLOYERS   ALL=(root)   NOPASSWD: DEPLOY_CMDS
+
+# Pas besoin de TTY pour les pipelines CI/CD
+Defaults:DEPLOYERS   !requiretty

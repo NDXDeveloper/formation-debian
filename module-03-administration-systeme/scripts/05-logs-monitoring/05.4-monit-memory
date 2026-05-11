@@ -1,0 +1,13 @@
+#
+# Nom         : 05.4-monit-memory
+# Module      : 3 — Administration système
+# Section     : 3.5.4 — Alertes et notifications
+# Source      : module-03-administration-systeme/05.4-alertes-notifications.md
+# Description : Règle Monit pour surveiller l'utilisation mémoire.
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+check system $HOST
+    if memory usage > 85% for 3 cycles then alert
+    if swap usage > 25% then alert
+    alert ops@example.com

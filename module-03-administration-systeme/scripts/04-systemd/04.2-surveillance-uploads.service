@@ -1,0 +1,16 @@
+#
+# Nom         : 04.2-surveillance-uploads.service
+# Module      : 3 — Administration système
+# Section     : 3.4.2 — Unités, targets et dépendances
+# Source      : module-03-administration-systeme/04.2-unites-targets-dependances.md
+# Description : Service appelé par surveillance-uploads.path pour traiter les nouveaux
+#               fichiers.
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+[Unit]
+Description=Traiter les nouveaux uploads
+
+[Service]
+Type=oneshot
+ExecStart=/srv/scripts/process-uploads.sh

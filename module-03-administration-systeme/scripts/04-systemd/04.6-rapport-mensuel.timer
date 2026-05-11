@@ -1,0 +1,19 @@
+#
+# Nom         : 04.6-rapport-mensuel.timer
+# Module      : 3 — Administration système
+# Section     : 3.4.6 — Timers systemd
+# Source      : module-03-administration-systeme/04.6-timers-systemd.md
+# Description : Timer mensuel pour rapport (1er du mois à 8h).
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+[Unit]
+Description=Rapport mensuel le premier lundi
+
+[Timer]
+OnCalendar=Mon *-*-01..07 09:00:00
+# Le lundi qui tombe entre le 1er et le 7 de chaque mois = premier lundi
+Persistent=true
+
+[Install]
+WantedBy=timers.target

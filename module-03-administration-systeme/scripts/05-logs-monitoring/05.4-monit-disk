@@ -1,0 +1,13 @@
+#
+# Nom         : 05.4-monit-disk
+# Module      : 3 — Administration système
+# Section     : 3.5.4 — Alertes et notifications
+# Source      : module-03-administration-systeme/05.4-alertes-notifications.md
+# Description : Règle Monit pour surveiller l'espace disque (alerte par seuil).
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+check filesystem rootfs with path /
+    if space usage > 80% then alert
+    if space usage > 90% then exec "/usr/local/bin/cleanup-emergency.sh"
+    alert ops@example.com

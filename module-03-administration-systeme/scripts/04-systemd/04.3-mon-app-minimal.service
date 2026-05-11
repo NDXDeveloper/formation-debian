@@ -1,0 +1,18 @@
+#
+# Nom         : 04.3-mon-app-minimal.service
+# Module      : 3 — Administration système
+# Section     : 3.4.3 — Services personnalisés
+# Source      : module-03-administration-systeme/04.3-services-personnalises.md
+# Description : Service systemd minimal (Type=simple par défaut). Cas le plus courant
+#               : un programme qui tourne en avant-plan.
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+[Unit]
+Description=Mon application web
+
+[Service]
+ExecStart=/srv/mon-app/bin/server
+
+[Install]
+WantedBy=multi-user.target

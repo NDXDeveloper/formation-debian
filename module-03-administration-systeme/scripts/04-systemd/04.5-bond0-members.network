@@ -1,0 +1,14 @@
+#
+# Nom         : 04.5-bond0-members.network
+# Module      : 3 — Administration système
+# Section     : 3.4.5 — systemd-networkd et systemd-resolved
+# Source      : module-03-administration-systeme/04.5-systemd-network-resolved.md
+# Description : Attache les interfaces physiques au bonding bond0.
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+[Match]
+Name=enp0s3 enp0s4
+
+[Network]
+Bond=bond0

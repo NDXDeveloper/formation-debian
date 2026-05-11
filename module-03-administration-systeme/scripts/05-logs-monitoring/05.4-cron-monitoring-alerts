@@ -1,0 +1,12 @@
+#
+# Nom         : 05.4-cron-monitoring-alerts
+# Module      : 3 — Administration système
+# Section     : 3.5.4 — Alertes et notifications
+# Source      : module-03-administration-systeme/05.4-alertes-notifications.md
+# Description : Entrées cron classiques pour les vérifications de monitoring.
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+*/15 * * * * root /usr/local/bin/alert-disk.sh
+*/5  * * * * root /usr/local/bin/alert-memory.sh
+*/2  * * * * root /usr/local/bin/alert-services.sh

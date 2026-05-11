@@ -1,0 +1,15 @@
+#
+# Nom         : 04.5-vlan100-ip.network
+# Module      : 3 — Administration système
+# Section     : 3.4.5 — systemd-networkd et systemd-resolved
+# Source      : module-03-administration-systeme/04.5-systemd-network-resolved.md
+# Description : IP statique attribuée à l'interface VLAN 100.
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+[Match]
+Name=vlan100
+
+[Network]
+Address=10.100.0.50/24
+Gateway=10.100.0.1

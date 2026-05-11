@@ -1,0 +1,20 @@
+#
+# Nom         : 04.6-backup-nocturne.timer
+# Module      : 3 — Administration système
+# Section     : 3.4.6 — Timers systemd
+# Source      : module-03-administration-systeme/04.6-timers-systemd.md
+# Description : Timer qui déclenche une sauvegarde nocturne avec randomisation.
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+[Unit]
+Description=Sauvegarde nocturne à 2h du matin
+
+[Timer]
+OnCalendar=*-*-* 02:00:00
+# Chaque jour à 02:00:00
+Persistent=true
+# Si le système était éteint à 02:00, exécuter au prochain démarrage
+
+[Install]
+WantedBy=timers.target

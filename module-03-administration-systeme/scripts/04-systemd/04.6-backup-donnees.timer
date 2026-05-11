@@ -1,0 +1,21 @@
+#
+# Nom         : 04.6-backup-donnees.timer
+# Module      : 3 — Administration système
+# Section     : 3.4.6 — Timers systemd
+# Source      : module-03-administration-systeme/04.6-timers-systemd.md
+# Description : Timer associé à backup-donnees.service (Persistent=true pour
+#               rattrapage).
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+[Unit]
+Description=Planification de la sauvegarde quotidienne
+
+[Timer]
+OnCalendar=*-*-* 02:00:00
+Persistent=true
+AccuracySec=5min
+RandomizedDelaySec=30min
+
+[Install]
+WantedBy=timers.target

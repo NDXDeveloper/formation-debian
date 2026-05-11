@@ -1,0 +1,17 @@
+#
+# Nom         : 05.4-monit-nginx
+# Module      : 3 — Administration système
+# Section     : 3.5.4 — Alertes et notifications
+# Source      : module-03-administration-systeme/05.4-alertes-notifications.md
+# Description : Règle Monit pour surveiller nginx et le redémarrer en cas d'échec.
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+check process nginx with pidfile /run/nginx.pid
+    start program = "/usr/bin/systemctl start nginx"
+    stop program = "/usr/bin/systemctl stop nginx"
+    if failed host 127.0.0.1 port 80 protocol http
+        with timeout 10 seconds
+        then restart
+    if 3 restarts within 5 cycles then alert
+    alert ops@example.com

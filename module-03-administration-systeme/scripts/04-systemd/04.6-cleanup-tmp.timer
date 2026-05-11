@@ -1,0 +1,19 @@
+#
+# Nom         : 04.6-cleanup-tmp.timer
+# Module      : 3 — Administration système
+# Section     : 3.4.6 — Timers systemd
+# Source      : module-03-administration-systeme/04.6-timers-systemd.md
+# Description : Timer associé à cleanup-tmp.service (hebdomadaire).
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+[Unit]
+Description=Nettoyage périodique des fichiers temporaires
+
+[Timer]
+OnBootSec=15min
+OnUnitActiveSec=4h
+# 15 min après le boot, puis toutes les 4 heures
+
+[Install]
+WantedBy=timers.target

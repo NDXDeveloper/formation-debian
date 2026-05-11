@@ -1,0 +1,23 @@
+#
+# Nom         : 04.5-ethernet-dhcp.network
+# Module      : 3 — Administration système
+# Section     : 3.4.5 — systemd-networkd et systemd-resolved
+# Source      : module-03-administration-systeme/04.5-systemd-network-resolved.md
+# Description : Interface Ethernet en DHCP (cas le plus simple).
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+[Match]
+Name=en*
+# Correspond à toute interface dont le nom commence par "en"
+# (enp0s3, ens3, eno1, etc. — nomenclature systemd predictable names)
+
+[Network]
+DHCP=yes
+# Active DHCP v4 et v6
+
+[DHCPv4]
+UseDNS=yes
+UseNTP=yes
+UseDomains=yes
+RouteMetric=100

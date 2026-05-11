@@ -1,0 +1,17 @@
+#
+# Nom         : 04.5-bridge-br0-ip.network
+# Module      : 3 — Administration système
+# Section     : 3.4.5 — systemd-networkd et systemd-resolved
+# Source      : module-03-administration-systeme/04.5-systemd-network-resolved.md
+# Description : Configure l'IP du bridge br0 (DHCP ou statique).
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+# Configurer le bridge lui-même
+[Match]
+Name=br0
+
+[Network]
+Address=192.168.1.100/24
+Gateway=192.168.1.1
+DNS=192.168.1.1

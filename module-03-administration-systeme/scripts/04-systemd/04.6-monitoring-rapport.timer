@@ -1,0 +1,22 @@
+#
+# Nom         : 04.6-monitoring-rapport.timer
+# Module      : 3 — Administration système
+# Section     : 3.4.6 — Timers systemd
+# Source      : module-03-administration-systeme/04.6-timers-systemd.md
+# Description : Timer monotone (relatif au démarrage du service plutôt qu'au
+#               calendrier).
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+[Unit]
+Description=Rapports de monitoring matin et soir
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 08:00:00
+OnCalendar=Mon..Fri *-*-* 18:00:00
+# Deux fois par jour en semaine
+
+Persistent=true
+
+[Install]
+WantedBy=timers.target

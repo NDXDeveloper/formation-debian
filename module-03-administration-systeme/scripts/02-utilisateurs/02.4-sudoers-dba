@@ -1,0 +1,23 @@
+#
+# Nom         : 02.4-sudoers-dba
+# Module      : 3 — Administration système
+# Section     : 3.2.4 — Sudo et privilèges
+# Source      : module-03-administration-systeme/02.4-sudo-privileges.md
+# Description : Profil sudo dba : commandes PostgreSQL/MySQL et accès aux logs DB.
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+User_Alias  DBA = david, eve
+
+Cmnd_Alias  DBA_CMDS = /usr/bin/systemctl start postgresql, \
+                        /usr/bin/systemctl stop postgresql, \
+                        /usr/bin/systemctl restart postgresql, \
+                        /usr/bin/systemctl reload postgresql, \
+                        /usr/bin/systemctl status postgresql, \
+                        /usr/bin/pg_lsclusters
+
+# Exécuter des commandes en tant que postgres
+DBA   ALL=(postgres)   ALL
+
+# Gérer le service PostgreSQL en root
+DBA   ALL=(root)   DBA_CMDS

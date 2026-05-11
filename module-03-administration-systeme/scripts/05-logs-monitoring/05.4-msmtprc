@@ -1,0 +1,33 @@
+#
+# Nom         : 05.4-msmtprc
+# Module      : 3 — Administration système
+# Section     : 3.5.4 — Alertes et notifications
+# Source      : module-03-administration-systeme/05.4-alertes-notifications.md
+# Description : Configuration msmtp pour l'envoi d'emails via un relais SMTP
+#               authentifié.
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+# Configuration globale pour le système
+
+defaults
+auth           on
+tls            on
+tls_trust_file /etc/ssl/certs/ca-certificates.crt
+logfile        /var/log/msmtp.log
+
+# Compte par défaut (relay vers le serveur SMTP de l'entreprise)
+account        default
+host           smtp.example.com
+port           587
+from           alertes@srv01.example.com
+user           alertes@example.com
+password       MotDePasseSMTP
+
+# Alternative : relay via un service cloud (exemple avec Gmail)
+# account      gmail
+# host         smtp.gmail.com
+# port         587
+# from         alertes-serveur@gmail.com
+# user         alertes-serveur@gmail.com
+# password     app-specific-password

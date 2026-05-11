@@ -1,0 +1,15 @@
+#
+# Nom         : 04.5-vlans-parent.network
+# Module      : 3 — Administration système
+# Section     : 3.4.5 — systemd-networkd et systemd-resolved
+# Source      : module-03-administration-systeme/04.5-systemd-network-resolved.md
+# Description : Interface physique parente déclarant les VLANs enfants.
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+# Interface parente qui porte le VLAN
+[Match]
+Name=enp0s3
+
+[Network]
+VLAN=vlan100

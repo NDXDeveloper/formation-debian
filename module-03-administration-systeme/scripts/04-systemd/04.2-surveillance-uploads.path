@@ -1,0 +1,19 @@
+#
+# Nom         : 04.2-surveillance-uploads.path
+# Module      : 3 — Administration système
+# Section     : 3.4.2 — Unités, targets et dépendances
+# Source      : module-03-administration-systeme/04.2-unites-targets-dependances.md
+# Description : Path unit qui surveille un répertoire et déclenche un service à chaque
+#               modification.
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+[Unit]
+Description=Surveiller le répertoire d'uploads
+
+[Path]
+PathModified=/srv/app/uploads
+# Autres options : PathExists=, PathExistsGlob=, PathChanged=, DirectoryNotEmpty=
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,15 @@
+#
+# Nom         : 04.6-healthcheck.service
+# Module      : 3 — Administration système
+# Section     : 3.4.6 — Timers systemd
+# Source      : module-03-administration-systeme/04.6-timers-systemd.md
+# Description : Service appelé par healthcheck.timer (vérification de santé).
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+[Unit]
+Description=Vérification de santé
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/healthcheck.sh

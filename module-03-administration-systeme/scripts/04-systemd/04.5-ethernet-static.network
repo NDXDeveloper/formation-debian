@@ -1,0 +1,28 @@
+#
+# Nom         : 04.5-ethernet-static.network
+# Module      : 3 — Administration système
+# Section     : 3.4.5 — systemd-networkd et systemd-resolved
+# Source      : module-03-administration-systeme/04.5-systemd-network-resolved.md
+# Description : Interface Ethernet avec IP statique, gateway et DNS.
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+[Match]
+Name=enp0s3
+
+[Network]
+Address=192.168.1.100/24
+Gateway=192.168.1.1
+DNS=192.168.1.1
+DNS=8.8.8.8
+Domains=example.com
+NTP=ntp.example.com
+
+# Optionnel : désactiver IPv6 sur cette interface
+LinkLocalAddressing=ipv4
+
+[Route]
+# Route statique supplémentaire
+Destination=10.0.0.0/8
+Gateway=192.168.1.254
+Metric=200

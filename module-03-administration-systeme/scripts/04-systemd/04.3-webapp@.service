@@ -1,0 +1,26 @@
+#
+# Nom         : 04.3-webapp@.service
+# Module      : 3 — Administration système
+# Section     : 3.4.3 — Services personnalisés
+# Source      : module-03-administration-systeme/04.3-services-personnalises.md
+# Description : Service template (instanciable) : permet de lancer plusieurs instances
+#               avec un seul fichier, via systemctl start webapp@instance1.service.
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+[Unit]
+Description=Instance %i de l'application web
+After=network-online.target
+
+[Service]
+Type=exec
+User=webapp
+WorkingDirectory=/srv/webapp
+ExecStart=/srv/webapp/bin/server --instance=%i --port=%i
+# %i est remplacé par la partie après le @ dans le nom de l'instance
+
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,17 @@
+#
+# Nom         : 04.5-vpn-routes.network
+# Module      : 3 — Administration système
+# Section     : 3.4.5 — systemd-networkd et systemd-resolved
+# Source      : module-03-administration-systeme/04.5-systemd-network-resolved.md
+# Description : Routes statiques pour une interface VPN (WireGuard/OpenVPN).
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+[Match]
+Name=wg0
+
+[Network]
+Address=10.0.0.50/24
+DNS=10.0.0.1
+Domains=~internal.corp ~dev.corp
+# Les requêtes pour *.internal.corp et *.dev.corp passent par 10.0.0.1

@@ -1,0 +1,18 @@
+#
+# Nom         : 02.4-sudoers-restreint
+# Module      : 3 — Administration système
+# Section     : 3.2.4 — Sudo et privilèges
+# Source      : module-03-administration-systeme/02.4-sudo-privileges.md
+# Description : Exemple de profil restreint : un seul outil autorisé, NOPASSWD avec
+#               restrictions strictes.
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+User_Alias  RESTRICTED = stagiaire01, prestataire_ext
+
+Cmnd_Alias  SAFE_CMDS = /usr/bin/systemctl status *, \
+                         /usr/bin/journalctl --no-pager -n 100 *, \
+                         /usr/bin/cat /var/log/app/*.log
+
+RESTRICTED   ALL=(root)   NOEXEC: SAFE_CMDS
+# NOEXEC empêche de lancer un shell depuis les commandes autorisées

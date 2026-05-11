@@ -1,0 +1,16 @@
+#
+# Nom         : 05.4-alert-disk.service
+# Module      : 3 — Administration système
+# Section     : 3.5.4 — Alertes et notifications
+# Source      : module-03-administration-systeme/05.4-alertes-notifications.md
+# Description : Service oneshot pour vérifier l'espace disque et alerter si seuil
+#               dépassé.
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+[Unit]
+Description=Vérification de l'espace disque
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/alert-disk.sh

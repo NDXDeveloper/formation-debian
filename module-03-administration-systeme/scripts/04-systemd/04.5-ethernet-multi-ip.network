@@ -1,0 +1,18 @@
+#
+# Nom         : 04.5-ethernet-multi-ip.network
+# Module      : 3 — Administration système
+# Section     : 3.4.5 — systemd-networkd et systemd-resolved
+# Source      : module-03-administration-systeme/04.5-systemd-network-resolved.md
+# Description : Interface avec plusieurs adresses IP (alias).
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+[Match]
+Name=enp0s3
+
+[Network]
+Address=192.168.1.100/24
+Address=192.168.1.101/24
+Address=192.168.1.102/24
+Gateway=192.168.1.1
+DNS=192.168.1.1

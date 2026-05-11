@@ -1,0 +1,72 @@
+#
+# Nom         : 04.3-mon-app-complet.service
+# Module      : 3 — Administration système
+# Section     : 3.4.3 — Services personnalisés
+# Source      : module-03-administration-systeme/04.3-services-personnalises.md
+# Description : Service systemd complet et durci : sandboxing complet
+#               (NoNewPrivileges, ProtectSystem, ReadWritePaths, ProtectHome,
+#               RestrictAddressFamilies, etc.).
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+[Unit]
+Description=Mon application web de gestion
+Documentation=https://wiki.interne/mon-app
+After=network-online.target postgresql.service
+Wants=network-online.target postgresql.service
+
+# Limite de redémarrages : depuis systemd 230 (2016), StartLimitIntervalSec
+# et StartLimitBurst doivent être dans [Unit] (et non [Service] comme dans
+# certaines anciennes documentations). systemd-analyze verify ignore ces
+# clés silencieusement si elles sont mal placées.
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+# --- Identité ---
+Type=exec
+User=appuser
+Group=appgroup
+
+# --- Exécution ---
+WorkingDirectory=/srv/mon-app
+ExecStart=/srv/mon-app/bin/server --config=/srv/mon-app/etc/config.yml
+ExecReload=/bin/kill -HUP $MAINPID
+
+# --- Environnement ---
+Environment=NODE_ENV=production
+Environment=PORT=8080
+EnvironmentFile=-/srv/mon-app/etc/env
+# Le tiret (-) rend le fichier optionnel : pas d'erreur s'il n'existe pas
+
+# --- Redémarrage ---
+Restart=on-failure
+RestartSec=5
+# Note : StartLimitIntervalSec / StartLimitBurst ont été déplacés dans [Unit]
+# (cf. note en haut). Les laisser ici provoque "Unknown key" sur systemd 230+.
+
+# --- Timeouts ---
+TimeoutStartSec=30
+TimeoutStopSec=30
+WatchdogSec=60
+
+# --- Ressources ---
+MemoryMax=1G
+MemoryHigh=768M
+CPUQuota=200%
+TasksMax=100
+
+# --- Sécurité (sandboxing) ---
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/srv/mon-app/data /srv/mon-app/logs
+
+# --- Journalisation ---
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mon-app
+
+[Install]
+WantedBy=multi-user.target

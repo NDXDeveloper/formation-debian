@@ -1,0 +1,22 @@
+#
+# Nom         : 04.6-healthcheck.timer
+# Module      : 3 — Administration système
+# Section     : 3.4.6 — Timers systemd
+# Source      : module-03-administration-systeme/04.6-timers-systemd.md
+# Description : Timer qui exécute healthcheck.service toutes les 5 minutes.
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+[Unit]
+Description=Vérification de santé toutes les 5 minutes
+
+[Timer]
+# 5 minutes après le boot, puis toutes les 5 minutes
+OnBootSec=5min
+OnUnitActiveSec=5min
+# OnUnitActiveSec compte depuis la dernière exécution du service
+# → si le service met 30s à s'exécuter, le prochain déclenchement
+#   sera 5min après la FIN de l'exécution précédente
+
+[Install]
+WantedBy=timers.target

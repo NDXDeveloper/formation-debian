@@ -1,0 +1,38 @@
+#
+# Nom         : 04.6-backup-donnees.service
+# Module      : 3 — Administration système
+# Section     : 3.4.6 — Timers systemd
+# Source      : module-03-administration-systeme/04.6-timers-systemd.md
+# Description : Service de sauvegarde de données — appelé par backup-donnees.timer.
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+[Unit]
+Description=Sauvegarde quotidienne des données
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=backup
+Group=backup
+ExecStart=/usr/local/bin/backup-donnees.sh
+
+# Basse priorité pour ne pas impacter les services
+Nice=15
+IOSchedulingClass=idle
+
+# Limites de ressources
+MemoryMax=1G
+CPUQuota=50%
+
+# Sécurité
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/srv/backup /var/log/backup
+ProtectHome=read-only
+
+# Journalisation
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=backup-donnees

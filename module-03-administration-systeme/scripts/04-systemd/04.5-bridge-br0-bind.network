@@ -1,0 +1,15 @@
+#
+# Nom         : 04.5-bridge-br0-bind.network
+# Module      : 3 — Administration système
+# Section     : 3.4.5 — systemd-networkd et systemd-resolved
+# Source      : module-03-administration-systeme/04.5-systemd-network-resolved.md
+# Description : Attache une interface physique au bridge br0.
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+# Attacher l'interface physique au bridge
+[Match]
+Name=enp0s3
+
+[Network]
+Bridge=br0

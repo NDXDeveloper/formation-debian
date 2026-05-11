@@ -1,0 +1,15 @@
+#
+# Nom         : 04.5-vlan100.netdev
+# Module      : 3 — Administration système
+# Section     : 3.4.5 — systemd-networkd et systemd-resolved
+# Source      : module-03-administration-systeme/04.5-systemd-network-resolved.md
+# Description : Définition d'un VLAN tagué (ID=100).
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+[NetDev]
+Name=vlan100
+Kind=vlan
+
+[VLAN]
+Id=100

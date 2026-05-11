@@ -1,0 +1,17 @@
+#
+# Nom         : 02.4-sudoers-admins
+# Module      : 3 — Administration système
+# Section     : 3.2.4 — Sudo et privilèges
+# Source      : module-03-administration-systeme/02.4-sudo-privileges.md
+# Description : Profil sudo des administrateurs : tout autoriser, pas de mot de passe
+#               sur quelques commandes.
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+User_Alias  ADMINS = alice, bob
+
+# Accès complet avec journalisation renforcée
+ADMINS   ALL=(ALL:ALL)   ALL
+
+# Timeout de 20 minutes
+Defaults:ADMINS   timestamp_timeout=20

@@ -1,0 +1,27 @@
+#
+# Nom         : 05.1-logrotate-mon-application
+# Module      : 3 — Administration système
+# Section     : 3.5.1 — rsyslog vs journald
+# Source      : module-03-administration-systeme/05.1-rsyslog-vs-journald.md
+# Description : Configuration logrotate pour les logs d'une application (rotation
+#               journalière, compression).
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+/var/log/mon-application.log
+{
+    daily
+    rotate 30
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 syslog appgroup
+    dateext
+    dateformat -%Y%m%d
+    maxsize 100M
+    postrotate
+        # Demander à rsyslog de rouvrir ses fichiers
+        /usr/lib/rsyslog/rsyslog-rotate
+    endscript
+}

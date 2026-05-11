@@ -1,0 +1,19 @@
+#
+# Nom         : 02.4-sudoers-monitoring
+# Module      : 3 — Administration système
+# Section     : 3.2.4 — Sudo et privilèges
+# Source      : module-03-administration-systeme/02.4-sudo-privileges.md
+# Description : Profil sudo monitoring : lecture seule sur les outils d'observation.
+# Testé sur   : Debian 13 (Trixie)
+# Licence     : CC BY 4.0 — Formation Debian (Nicolas DEOUX)
+#
+Cmnd_Alias  MONITORING = /usr/bin/journalctl, \
+                          /usr/bin/systemctl status *, \
+                          /usr/bin/ss -tlnp, \
+                          /usr/bin/df -h, \
+                          /usr/sbin/iotop -bon1, \
+                          /usr/bin/free -h, \
+                          /usr/bin/top -bn1, \
+                          /usr/bin/netstat -tlnp
+
+%monitoring   ALL=(root)   NOPASSWD: MONITORING
