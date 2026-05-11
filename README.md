@@ -2,10 +2,10 @@
 
 *De l'installation de votre premier poste Debian à l'orchestration Kubernetes en production*
 
-[![Licence CC BY 4.0](https://img.shields.io/badge/Licence-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
-[![Debian 13 Trixie](https://img.shields.io/badge/Debian-13%20Trixie-A81D33?logo=debian&logoColor=white)](https://www.debian.org/releases/trixie/)
-[![Kubernetes 1.34+](https://img.shields.io/badge/Kubernetes-1.34%2B-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
-[![19 modules](https://img.shields.io/badge/Modules-19-blue.svg)](SOMMAIRE.md)
+[![Licence CC BY 4.0](https://img.shields.io/badge/Licence-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)  
+[![Debian 13 Trixie](https://img.shields.io/badge/Debian-13%20Trixie-A81D33?logo=debian&logoColor=white)](https://www.debian.org/releases/trixie/)  
+[![Kubernetes 1.34+](https://img.shields.io/badge/Kubernetes-1.34%2B-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)  
+[![19 modules](https://img.shields.io/badge/Modules-19-blue.svg)](SOMMAIRE.md)  
 [![~280 heures](https://img.shields.io/badge/Dur%C3%A9e-~280h-green.svg)](#-structure-de-la-formation)
 
 ---
