@@ -1,0 +1,58 @@
+// =============================================================================
+// Module 19 — Architectures de référence
+// Section 19.2.3 — Services intégrés (BIND9 — options)
+// Fichier : /etc/bind/named.conf.options — DNS autoritaire interne
+// Licence : CC BY 4.0
+// =============================================================================
+// Configuration du serveur autoritaire BIND9 sur le DNS maître (dns-1).
+// La récursion est désactivée (assurée par Unbound côté résolveur), seule
+// l'écoute est limitée aux interfaces internes. Les transferts de zone
+// sont restreints au DNS esclave (10.0.0.11).
+//
+// Validation : sudo named-checkconf
+// =============================================================================
+
+options {
+    directory "/var/cache/bind";
+
+    // Écouter sur les interfaces internes uniquement
+    listen-on { 127.0.0.1; 10.0.0.10; };
+    listen-on-v6 { none; };
+
+    // Pas de récursion sur le serveur autoritaire
+    recursion no;
+
+    // Transferts de zone uniquement vers l'esclave
+    allow-transfer { 10.0.0.11; };
+
+    // Pas de notification vers l'extérieur
+    allow-notify { none; };
+
+    // DNSSEC validation
+    dnssec-validation auto;
+
+    // Journalisation
+    querylog no;     // Activer temporairement pour le debug
+
+    // Taille du cache
+    max-cache-size 256m;
+};
+
+// Journalisation structurée
+logging {
+    channel default_log {
+        file "/var/log/bind/default.log" versions 5 size 20m;
+        severity info;
+        print-time yes;
+        print-category yes;
+    };
+    channel security_log {
+        file "/var/log/bind/security.log" versions 5 size 20m;
+        severity info;
+        print-time yes;
+    };
+    category default { default_log; };
+    category security { security_log; };
+    category update { security_log; };         // Logs DDNS
+    category update-security { security_log; };
+};

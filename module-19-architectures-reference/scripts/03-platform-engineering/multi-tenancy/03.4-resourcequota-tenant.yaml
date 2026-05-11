@@ -1,0 +1,30 @@
+# =============================================================================
+# Module 19 — Architectures de référence
+# Section 19.3.4 — Multi-tenancy (ResourceQuota tenant)
+# Fichier : resourcequota-tenant.yaml — quotas par namespace de tenant
+# Licence : CC BY 4.0
+# =============================================================================
+# ResourceQuota appliqué dans chaque namespace de tenant via Kyverno
+# (politique de génération automatique). Empêche un tenant de monopoliser
+# les ressources cluster.
+#
+# Tailles indicatives à dimensionner selon les profils (small/medium/large)
+# définis par l'équipe plateforme.
+# =============================================================================
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: tenant-quota
+spec:
+  hard:
+    requests.cpu: "10"
+    requests.memory: "20Gi"
+    limits.cpu: "20"
+    limits.memory: "40Gi"
+    persistentvolumeclaims: "10"
+    requests.storage: "100Gi"
+    services.loadbalancers: "2"
+    pods: "50"
+    count/secrets: "30"
+    count/configmaps: "30"

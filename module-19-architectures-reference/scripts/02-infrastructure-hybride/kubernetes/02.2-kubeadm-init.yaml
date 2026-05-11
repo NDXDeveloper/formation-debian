@@ -1,0 +1,112 @@
+# =============================================================================
+# Module 19 — Architectures de référence
+# Section 19.2.2 — Cluster K8s HA Debian (kubeadm init)
+# Fichier : kubeadm-config.yaml — config initiale du premier control-plane (cp-1)
+# Licence : CC BY 4.0
+# =============================================================================
+# Configuration kubeadm v1beta4 (Kubernetes 1.31+).
+#
+# IMPORTANT v1beta4 : `extraArgs` est une LISTE d'objets `{name, value}`
+# (vs mapping clé:valeur en v1beta3). Permet les flags dupliqués
+# (ex. plusieurs --feature-gates).
+#
+# Pour migrer une ancienne config :
+#   kubeadm config migrate --old-config v1beta3.yaml --new-config v1beta4.yaml
+#
+# Initialisation : sudo kubeadm init --config=kubeadm-config.yaml --upload-certs
+# =============================================================================
+---
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: ClusterConfiguration
+kubernetesVersion: "v1.34.0"
+clusterName: "production"
+
+# Point d'entrée : la VIP du load balancer (PAS l'IP d'un nœud)
+controlPlaneEndpoint: "10.2.0.100:6443"
+
+networking:
+  # Pod CIDR — doit correspondre au CNI choisi
+  podSubnet: "10.2.16.0/20"
+  serviceSubnet: "10.2.32.0/20"
+  dnsDomain: "cluster.local"
+
+# Configuration de l'API server
+apiServer:
+  certSANs:
+    - "10.2.0.100"                    # VIP
+    - "10.2.0.10"                     # cp-1
+    - "10.2.0.11"                     # cp-2
+    - "10.2.0.12"                     # cp-3
+    - "k8s-api.k8s.internal.example.com"
+    - "k8s-api.internal.example.com"
+  extraArgs:
+    # Activer les audit logs (format v1beta4 : liste de {name, value})
+    - name: audit-log-path
+      value: "/var/log/kubernetes/audit.log"
+    - name: audit-log-maxage
+      value: "30"
+    - name: audit-log-maxbackup
+      value: "10"
+    - name: audit-log-maxsize
+      value: "100"
+    - name: audit-policy-file
+      value: "/etc/kubernetes/audit-policy.yaml"
+    # Chiffrement des secrets at-rest
+    - name: encryption-provider-config
+      value: "/etc/kubernetes/encryption-config.yaml"
+  extraVolumes:
+    - name: audit-log
+      hostPath: /var/log/kubernetes
+      mountPath: /var/log/kubernetes
+      pathType: DirectoryOrCreate
+    - name: audit-policy
+      hostPath: /etc/kubernetes/audit-policy.yaml
+      mountPath: /etc/kubernetes/audit-policy.yaml
+      readOnly: true
+      pathType: File
+    - name: encryption-config
+      hostPath: /etc/kubernetes/encryption-config.yaml
+      mountPath: /etc/kubernetes/encryption-config.yaml
+      readOnly: true
+      pathType: File
+
+# Configuration du controller manager
+controllerManager:
+  extraArgs:
+    - name: bind-address
+      value: "0.0.0.0"                # Nécessaire pour le scraping Prometheus
+
+# Configuration du scheduler
+scheduler:
+  extraArgs:
+    - name: bind-address
+      value: "0.0.0.0"
+
+# Configuration etcd
+etcd:
+  local:
+    extraArgs:
+      # Optimisations etcd pour la production
+      - name: quota-backend-bytes
+        value: "8589934592"           # 8 Go (défaut 2 Go)
+      - name: auto-compaction-retention
+        value: "8"                    # Compaction automatique toutes les 8h
+      - name: snapshot-count
+        value: "10000"
+      - name: heartbeat-interval
+        value: "250"                  # ms — adapter selon la latence réseau
+      - name: election-timeout
+        value: "2500"                 # ms — 10x le heartbeat
+
+---
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: InitConfiguration
+localAPIEndpoint:
+  advertiseAddress: "10.2.0.10"       # IP de cp-1
+  bindPort: 6443
+nodeRegistration:
+  name: cp-1.k8s.internal.example.com
+  criSocket: "unix:///run/containerd/containerd.sock"
+  taints:
+    - key: "node-role.kubernetes.io/control-plane"
+      effect: "NoSchedule"

@@ -1,0 +1,50 @@
+# =============================================================================
+# Module 19 — Architectures de référence
+# Section 19.3.2 — Self-service portal (Crossplane CompositeResourceDefinition)
+# Fichier : crossplane/composite-definition.yaml — XRD XDatabase
+# Licence : CC BY 4.0
+# =============================================================================
+# Le XRD définit une nouvelle API custom (XDatabase) que les développeurs
+# consomment via un DatabaseClaim. La Composition (fichier jumeau) traduit
+# le claim en ressources concrètes (Helm Release PostgreSQL, Secret K8s).
+#
+# Workflow self-service :
+#   1. dev applique un DatabaseClaim minimal (engine + size)
+#   2. Crossplane crée le XDatabase, qui sélectionne la Composition
+#   3. La Composition provisionne PostgreSQL, génère les credentials
+#   4. Le Secret de connexion est exposé dans le namespace du dev
+# =============================================================================
+---
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xdatabases.platform.example.com
+spec:
+  group: platform.example.com
+  names:
+    kind: XDatabase
+    plural: xdatabases
+  claimNames:
+    kind: DatabaseClaim
+    plural: databaseclaims
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                engine:
+                  type: string
+                  enum: ["postgresql", "redis"]
+                  description: "Type de base de données"
+                size:
+                  type: string
+                  enum: ["small", "medium", "large"]
+                  default: "small"
+                  description: "Gabarit de dimensionnement"
+              required: ["engine"]

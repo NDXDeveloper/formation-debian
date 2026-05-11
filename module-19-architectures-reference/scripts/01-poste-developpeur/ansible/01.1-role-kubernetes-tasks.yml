@@ -1,0 +1,63 @@
+# =============================================================================
+# Module 19 — Architectures de référence
+# Section 19.1.1 — Configuration poste développeur Debian (rôle Kubernetes)
+# Fichier : roles/kubernetes/tasks/main.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Rôle Ansible installant la chaîne d'outils Kubernetes côté développeur :
+# kubectl, helm, kind, k9s, kubectx, kubens. Le binaire kubectl vient du
+# dépôt officiel Kubernetes (pkgs.k8s.io), les autres outils des releases
+# GitHub upstream.
+#
+# Variables requises (group_vars/all.yml) :
+#   kubectl_version : version mineure (ex. '1.34')
+#   dev_user        : utilisateur non-root cible (binaires sous ~/.local/bin)
+# =============================================================================
+---
+- name: Ajout de la clé GPG du dépôt Kubernetes
+  ansible.builtin.get_url:
+    url: "https://pkgs.k8s.io/core:/stable:/v{{ kubectl_version }}/deb/Release.key"
+    dest: /etc/apt/keyrings/kubernetes-apt-keyring.asc
+    mode: '0644'
+
+- name: Ajout du dépôt Kubernetes
+  ansible.builtin.apt_repository:
+    repo: >
+      deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.asc]
+      https://pkgs.k8s.io/core:/stable:/v{{ kubectl_version }}/deb/ /
+    filename: kubernetes
+    state: present
+
+- name: Installation de kubectl
+  ansible.builtin.apt:
+    name: kubectl
+    state: present
+    update_cache: true
+
+- name: Installation de Helm
+  ansible.builtin.shell:
+    cmd: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+    creates: /usr/local/bin/helm
+
+- name: Installation de Kind
+  ansible.builtin.get_url:
+    url: "https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64"
+    dest: "/home/{{ dev_user }}/.local/bin/kind"
+    mode: '0755'
+    owner: "{{ dev_user }}"
+
+- name: Installation de K9s
+  ansible.builtin.shell:
+    cmd: curl -sS https://webi.sh/k9s | sh
+    creates: "/home/{{ dev_user }}/.local/bin/k9s"
+  become_user: "{{ dev_user }}"
+
+- name: Installation de kubectx et kubens
+  ansible.builtin.get_url:
+    url: "https://github.com/ahmetb/kubectx/releases/latest/download/{{ item }}"
+    dest: "/home/{{ dev_user }}/.local/bin/{{ item }}"
+    mode: '0755'
+    owner: "{{ dev_user }}"
+  loop:
+    - kubectx
+    - kubens

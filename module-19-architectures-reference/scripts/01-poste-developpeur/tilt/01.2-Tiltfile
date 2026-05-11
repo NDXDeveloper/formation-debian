@@ -1,0 +1,101 @@
+# =============================================================================
+# Module 19 — Architectures de référence
+# Section 19.1.2 — Environnement Kubernetes local (Tilt)
+# Fichier : Tiltfile — workflow dev avec live_update et helm_resource
+# Licence : CC BY 4.0
+# =============================================================================
+# Tilt utilise Starlark (dialecte Python). Avantage vs Skaffold : configuration
+# programmatique flexible. Cette config démontre :
+#   - docker_build avec live_update (sync + run incrémental)
+#   - k8s_resource avec port_forwards et labels (groupement dashboard)
+#   - helm_resource (PostgreSQL en infrastructure éphémère)
+#   - k8s_yaml pour Redis
+#   - argument CLI `to-run` pour sélectionner un sous-ensemble de services
+#
+# Lancement : tilt up           (mode boucle + dashboard http://localhost:10350)
+#             tilt up -- backend (lance uniquement backend group)
+#             tilt down         (arrêt + nettoyage des ressources)
+# =============================================================================
+
+# ─── API Go ───────────────────────────────────────────
+docker_build(
+    'mon-projet/api',
+    context='./api',
+    dockerfile='./api/Dockerfile',
+    # Live update : synchronise les fichiers sans reconstruire l'image
+    live_update=[
+        sync('./api', '/app'),
+        run('cd /app && go build -o /app/server .', trigger=['./api/main.go', './api/**/*.go']),
+    ]
+)
+
+k8s_yaml('api/k8s/deployment.yaml')
+k8s_yaml('api/k8s/service.yaml')
+
+# Exposition du port avec nom explicite dans le dashboard
+k8s_resource(
+    'api',
+    port_forwards='8080:8080',
+    labels=['backend']
+)
+
+# ─── Frontend React ───────────────────────────────────
+docker_build(
+    'mon-projet/frontend',
+    context='./frontend',
+    dockerfile='./frontend/Dockerfile',
+    target='development',
+    live_update=[
+        # Pour les fichiers statiques, pas besoin de rebuild
+        sync('./frontend/src', '/app/src'),
+        sync('./frontend/public', '/app/public'),
+    ]
+)
+
+k8s_yaml('frontend/k8s/deployment.yaml')
+k8s_yaml('frontend/k8s/service.yaml')
+
+k8s_resource(
+    'frontend',
+    port_forwards='3000:3000',
+    labels=['frontend']
+)
+
+# ─── Infrastructure locale ────────────────────────────
+# Base de données PostgreSQL via chart Helm (dev local éphémère).
+# Note 2026 : pour la production, préférer CloudNativePG (opérateur CNCF).
+helm_resource(
+    'postgresql',
+    'oci://registry-1.docker.io/bitnamicharts/postgresql',
+    flags=['--set=auth.postgresPassword=devpassword',
+           '--set=primary.persistence.size=1Gi'],
+    labels=['infrastructure'],
+    port_forwards='5432:5432'
+)
+
+# Redis (depuis un manifeste YAML simple)
+k8s_yaml('k8s/redis.yaml')
+k8s_resource('redis', port_forwards='6379:6379', labels=['infrastructure'])
+
+# ─── Ingress ──────────────────────────────────────────
+k8s_yaml('k8s/ingress.yaml')
+
+# ─── Configuration globale ────────────────────────────
+# Permet de ne lancer qu'un sous-ensemble via `tilt up -- <group>`
+config.define_string_list("to-run", args=True)
+cfg = config.parse()
+
+groups = {
+    'backend': ['api', 'postgresql', 'redis'],
+    'frontend': ['frontend'],
+    'all': ['api', 'frontend', 'postgresql', 'redis']
+}
+
+resources = cfg.get('to-run', ['all'])
+selected = []
+for r in resources:
+    if r in groups:
+        selected.extend(groups[r])
+
+if selected:
+    config.set_enabled_resources(selected)

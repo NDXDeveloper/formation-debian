@@ -1,0 +1,19 @@
+# =============================================================================
+# Module 19 — Architectures de référence
+# Section 19.3.2 — Self-service portal (Crossplane Claim)
+# Fichier : database-claim.yaml — exemple consommé par un développeur
+# Licence : CC BY 4.0
+# =============================================================================
+# Tout ce que le développeur a besoin d'écrire pour provisionner une base
+# PostgreSQL conforme aux standards de la plateforme. La Composition
+# associée gère le déploiement, le dimensionnement, la persistence et les
+# credentials.
+# =============================================================================
+---
+apiVersion: platform.example.com/v1alpha1
+kind: DatabaseClaim
+metadata:
+  name: commandes-db
+spec:
+  engine: postgresql
+  size: small

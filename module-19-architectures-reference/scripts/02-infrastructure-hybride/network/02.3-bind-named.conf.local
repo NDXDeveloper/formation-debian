@@ -1,0 +1,57 @@
+// =============================================================================
+// Module 19 — Architectures de référence
+// Section 19.2.3 — Services intégrés (BIND9 — zones)
+// Fichier : /etc/bind/named.conf.local — déclarations de zones
+// Licence : CC BY 4.0
+// =============================================================================
+// Zones autoritaires gérées par dns-1 :
+//   - internal.example.com (forward)
+//   - reverse 10.0/16, 10.2/16, 10.3/16
+//
+// La clé TSIG `dhcp-update-key` est partagée avec Kea pour DDNS.
+// Générer avec : tsig-keygen -a hmac-sha256 dhcp-update-key
+//
+// Validation : sudo named-checkconf
+// =============================================================================
+
+// Clé TSIG pour les mises à jour dynamiques DHCP → DNS
+key "dhcp-update-key" {
+    algorithm hmac-sha256;
+    secret "GENERER_AVEC_tsig-keygen_dhcp-update-key";
+};
+
+// Zone principale interne
+zone "internal.example.com" {
+    type master;
+    file "/var/lib/bind/db.internal.example.com";
+    allow-update { key dhcp-update-key; };     // DDNS depuis Kea
+    allow-transfer { 10.0.0.11; };             // Transfert vers l'esclave
+    notify yes;
+};
+
+// Zone reverse pour le réseau principal
+zone "0.10.in-addr.arpa" {
+    type master;
+    file "/var/lib/bind/db.0.10.in-addr.arpa";
+    allow-update { key dhcp-update-key; };
+    allow-transfer { 10.0.0.11; };
+    notify yes;
+};
+
+// Zone reverse pour le réseau Kubernetes
+zone "2.10.in-addr.arpa" {
+    type master;
+    file "/var/lib/bind/db.2.10.in-addr.arpa";
+    allow-transfer { 10.0.0.11; };
+    notify yes;
+};
+
+// Zone reverse pour les clients DHCP (postes 10.3.0.0/24, IoT 10.3.1.0/24)
+// Indispensable : Kea DDNS tente de mettre à jour cette zone à chaque bail.
+zone "3.10.in-addr.arpa" {
+    type master;
+    file "/var/lib/bind/db.3.10.in-addr.arpa";
+    allow-update { key dhcp-update-key; };
+    allow-transfer { 10.0.0.11; };
+    notify yes;
+};

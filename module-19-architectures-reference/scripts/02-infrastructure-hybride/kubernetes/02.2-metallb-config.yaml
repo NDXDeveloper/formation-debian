@@ -1,0 +1,34 @@
+# =============================================================================
+# Module 19 — Architectures de référence
+# Section 19.2.2 — Cluster K8s HA Debian (MetalLB on-premise LoadBalancer)
+# Fichier : metallb-config.yaml — IPAddressPool + L2Advertisement
+# Licence : CC BY 4.0
+# =============================================================================
+# MetalLB fournit l'implémentation `Service.type=LoadBalancer` sur cluster
+# on-premise (équivalent du `cloud-controller-manager` chez AWS/GCP/Azure).
+#
+# L2Advertisement = annonce ARP sur le LAN (mode L2, simple). Pour les
+# infrastructures avec routeurs BGP-capable, préférer BGPAdvertisement.
+#
+# Préalable :
+#   helm repo add metallb https://metallb.github.io/metallb
+#   helm install metallb metallb/metallb --namespace metallb-system --create-namespace
+# =============================================================================
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: production-pool
+  namespace: metallb-system
+spec:
+  addresses:
+    - 10.2.0.150-10.2.0.200    # Plage IP réservée aux Services LoadBalancer
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: production-l2
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - production-pool

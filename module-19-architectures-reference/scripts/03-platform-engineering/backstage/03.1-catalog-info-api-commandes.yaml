@@ -1,0 +1,81 @@
+# =============================================================================
+# Module 19 — Architectures de référence
+# Section 19.3.1 — Plateforme interne (Backstage)
+# Fichier : catalog-info.yaml — service API "commandes"
+# Licence : CC BY 4.0
+# =============================================================================
+# Le fichier catalog-info.yaml est le contrat entre un composant et le portail
+# Backstage. Il déclare le composant, ses APIs, ses ressources, ses
+# dépendances, ses propriétaires, et expose les liens vers les outils
+# d'observabilité (Grafana, ArgoCD, Harbor).
+#
+# À placer à la racine du dépôt Git du composant.
+# Référence par Backstage via Locations dans app-config.yaml.
+# =============================================================================
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: api-commandes
+  title: "API Commandes"
+  description: "Service de gestion des commandes — REST API en Go"
+  annotations:
+    # Lien vers le dépôt GitLab
+    gitlab.com/project-slug: "equipe-commerce/api-commandes"
+    # Lien vers ArgoCD
+    argocd/app-name: api-commandes-production
+    # Lien vers les dashboards Grafana
+    grafana/dashboard-selector: "app=api-commandes"
+    # Lien vers les alertes Prometheus
+    prometheus.io/alert: "true"
+    # Documentation TechDocs
+    backstage.io/techdocs-ref: dir:.
+    # Lien vers l'image dans Harbor
+    harbor.io/repository: "commerce/api-commandes"
+  tags:
+    - go
+    - rest-api
+    - postgresql
+  links:
+    - url: https://grafana.apps.internal.example.com/d/api-commandes
+      title: "Dashboard Grafana"
+      icon: dashboard
+    - url: https://argocd.apps.internal.example.com/applications/api-commandes-production
+      title: "ArgoCD"
+      icon: cloud
+spec:
+  type: service
+  lifecycle: production
+  owner: group:equipe-commerce
+  system: systeme-commandes
+  providesApis:
+    - api-commandes-rest
+  dependsOn:
+    - resource:postgresql-commandes
+    - component:service-inventaire
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: api-commandes-rest
+  title: "API Commandes (REST)"
+  description: "API REST pour la gestion des commandes"
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:equipe-commerce
+  system: systeme-commandes
+  definition:
+    $text: ./docs/openapi.yaml
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: postgresql-commandes
+  description: "Base de données PostgreSQL du service commandes"
+spec:
+  type: database
+  owner: group:equipe-commerce
+  system: systeme-commandes

@@ -1,0 +1,95 @@
+# =============================================================================
+# Module 19 — Architectures de référence
+# Section 19.1.2 — Environnement Kubernetes local (Skaffold)
+# Fichier : skaffold.yaml — workflow dev complet API + frontend
+# Licence : CC BY 4.0
+# =============================================================================
+# Skaffold v2.14+ : workflow build → deploy → tail logs en boucle.
+# Inner loop optimisée par :
+#   - sync (reload sans rebuild complet) sur fichiers source
+#   - useBuildkit pour cache de layers maximisé
+#   - portForward automatique des services
+#   - profils : dev (défaut, kind), ci (push registry), helm (deploy via Helm)
+#
+# Lancement : skaffold dev          (mode boucle)
+#             skaffold run          (déploiement unique)
+#             skaffold debug        (debug distant via delve/JDWP/debugpy)
+# =============================================================================
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: mon-projet
+
+build:
+  # Utilisation du cluster Kind : pas besoin de push vers un registry
+  local:
+    push: false
+    useBuildkit: true
+  artifacts:
+    - image: mon-projet/api
+      context: api
+      docker:
+        dockerfile: Dockerfile
+      # Synchronisation de fichiers (évite le rebuild complet)
+      sync:
+        manual:
+          - src: "**/*.go"
+            dest: /app
+    - image: mon-projet/frontend
+      context: frontend
+      docker:
+        dockerfile: Dockerfile
+        target: development    # Utilise le stage "development" du multi-stage build
+      sync:
+        manual:
+          - src: "src/**"
+            dest: /app/src
+
+deploy:
+  kubectl:
+    manifests:
+      - api/k8s/*.yaml
+      - frontend/k8s/*.yaml
+      - k8s/*.yaml
+
+# Port forwarding automatique
+portForward:
+  - resourceType: service
+    resourceName: api
+    port: 8080
+    localPort: 8080
+  - resourceType: service
+    resourceName: frontend
+    port: 3000
+    localPort: 3000
+
+# Profils pour différents contextes
+profiles:
+  # Profil de développement (par défaut)
+  - name: dev
+    activation:
+      - kubeContext: kind-dev
+    build:
+      local:
+        push: false
+
+  # Profil CI : pousse vers un registry
+  - name: ci
+    build:
+      local:
+        push: true
+      tagPolicy:
+        sha256: {}
+
+  # Profil avec Helm au lieu de kubectl
+  - name: helm
+    deploy:
+      helm:
+        releases:
+          - name: mon-projet
+            chartPath: charts/mon-projet
+            valuesFiles:
+              - charts/mon-projet/values-dev.yaml
+            setValues:
+              image.tag: "{{.TAG}}"

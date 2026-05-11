@@ -1,0 +1,33 @@
+# =============================================================================
+# Module 19 — Architectures de référence
+# Section 19.3.4 — Multi-tenancy (NetworkPolicy)
+# Fichier : default-deny.yaml — politique deny-all par défaut + intra-tenant
+# Licence : CC BY 4.0
+# =============================================================================
+# Pattern d'isolation réseau par tenant :
+#   - default deny ingress + egress dans chaque namespace tenant
+#   - exception : communication intra-tenant (même label
+#     platform.example.com/tenant)
+#   - exceptions inter-tenants : NetworkPolicy explicite par couple
+#     (cf. 03.4-networkpolicy-cross-tenant.yaml)
+# =============================================================================
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-intra-tenant
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              platform.example.com/tenant: equipe-commerce
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              platform.example.com/tenant: equipe-commerce

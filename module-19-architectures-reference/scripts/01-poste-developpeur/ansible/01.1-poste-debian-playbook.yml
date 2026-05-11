@@ -1,0 +1,42 @@
+# =============================================================================
+# Module 19 — Architectures de référence
+# Section 19.1.1 — Configuration poste développeur Debian (Ansible)
+# Fichier : playbook.yml — orchestration des rôles par profil
+# Licence : CC BY 4.0
+# =============================================================================
+# Permet de reconstruire un poste dev cloud-native identique en une commande :
+#   ansible-playbook -i inventory/localhost.yml playbook.yml --ask-become-pass
+#   ansible-playbook -i inventory/localhost.yml playbook.yml \
+#       --tags kubernetes --ask-become-pass    # rôle ciblé
+#
+# Variables attendues (group_vars/all.yml) :
+#   install_profile : 'devops' | 'dev' | 'minimal'
+#   profile_roles   : mapping profile → liste de rôles
+#   dev_user        : login utilisateur (pas root)
+#   kubectl_version : ex. '1.34'
+# =============================================================================
+---
+- name: Configuration poste développeur Debian cloud-native
+  hosts: localhost
+  become: true
+
+  pre_tasks:
+    - name: Mise à jour du cache APT
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+  roles: "{{ profile_roles[install_profile] }}"
+
+  post_tasks:
+    - name: Nettoyage du cache APT
+      ansible.builtin.apt:
+        autoclean: true
+        autoremove: true
+
+    - name: Affichage du résumé
+      ansible.builtin.debug:
+        msg: >
+          Installation terminée avec le profil '{{ install_profile }}'.
+          Rôles appliqués : {{ profile_roles[install_profile] | join(', ') }}.
+          Un redémarrage peut être nécessaire.

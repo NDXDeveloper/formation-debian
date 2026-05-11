@@ -1,0 +1,55 @@
+# =============================================================================
+# Module 19 — Architectures de référence
+# Section 19.3.4 — Multi-tenancy (Kyverno ClusterPolicy)
+# Fichier : disallow-root.yaml — interdire les conteneurs root
+# Licence : CC BY 4.0
+# =============================================================================
+# Note Kyverno 1.13+ : `failureAction` est désormais au niveau de la RÈGLE
+# (`spec.rules[*].validate.failureAction`), pas au niveau de la policy.
+# L'ancienne forme `spec.validationFailureAction` est dépréciée.
+#
+# Le champ `namespaces` attend une LISTE de strings (chaque entrée peut être
+# un nom, un wildcard `*`, ou commencer par `!` pour exclure).
+# =============================================================================
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-root-containers
+  annotations:
+    policies.kyverno.io/title: "Interdire les conteneurs root"
+    policies.kyverno.io/category: "Security"
+    policies.kyverno.io/severity: "high"
+    policies.kyverno.io/description: >-
+      Les conteneurs ne doivent pas s'exécuter en tant que root.
+      Utiliser runAsNonRoot: true dans le securityContext.
+spec:
+  background: true
+  rules:
+    - name: check-run-as-non-root
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - "!kube-system"
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kyverno
+                - argocd
+                - monitoring
+                - crossplane-system
+      validate:
+        failureAction: Enforce      # Kyverno 1.13+ : au niveau de la règle
+        message: >-
+          Le conteneur {{ request.object.spec.containers[].name }} doit avoir
+          runAsNonRoot: true. Les conteneurs root ne sont pas autorisés
+          sur cette plateforme.
+        pattern:
+          spec:
+            containers:
+              - securityContext:
+                  runAsNonRoot: true

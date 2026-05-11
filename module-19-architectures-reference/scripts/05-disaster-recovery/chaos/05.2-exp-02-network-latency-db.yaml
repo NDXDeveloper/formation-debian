@@ -1,0 +1,44 @@
+# =============================================================================
+# Module 19 — Architectures de référence
+# Section 19.5.2 — Chaos engineering (Expérience 2 — Network latency DB)
+# Fichier : chaos/exp-02-network-latency-db.yaml
+# Licence : CC BY 4.0
+# =============================================================================
+# Hypothèse testée :
+#   « Si la latence réseau vers MySQL augmente de 200ms, GestCom reste
+#    fonctionnelle (dégradée) sans crash ni corruption de transaction. »
+#
+# delay 200ms + jitter 50ms simule une dégradation WAN ou un nœud DB sous
+# pression. Cette expérience révèle typiquement les problèmes N+1 SQL
+# (page nécessitant 20 requêtes → +4s de latence).
+#
+# direction: to + target {app: mysql} → la latence est appliquée aux
+# paquets sortants des pods gestcom À DESTINATION des pods MySQL.
+# =============================================================================
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: exp-02-db-latency
+  namespace: chaos-mesh
+spec:
+  action: delay
+  mode: all
+  selector:
+    namespaces:
+      - gestcom-staging
+    labelSelectors:
+      app: gestcom
+  delay:
+    latency: "200ms"
+    jitter: "50ms"             # Variation aléatoire ±50ms
+    correlation: "25"          # 25% de corrélation entre paquets consécutifs
+  direction: to
+  target:
+    selector:
+      namespaces:
+        - gestcom-staging
+      labelSelectors:
+        app: mysql
+    mode: all
+  duration: "5m"

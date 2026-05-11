@@ -1,0 +1,22 @@
+# =============================================================================
+# Module 19 — Architectures de référence
+# Section 19.1.2 — Environnement Kubernetes local
+# Fichier : kind-multi-node.yaml — cluster 1 control-plane + 2 workers
+# Licence : CC BY 4.0
+# =============================================================================
+# Cluster Kind multi-nœuds pour tester scheduling, affinités, tolerations.
+# Création : kind create cluster --config kind-multi-node.yaml
+# =============================================================================
+---
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: dev-multi
+nodes:
+  - role: control-plane
+  - role: worker
+  - role: worker
+
+networking:
+  # 127.0.0.1 limite l'API server à l'hôte local (recommandé pour un poste dev) ;
+  # mettre 0.0.0.0 pour autoriser un accès depuis le réseau.
+  apiServerAddress: "127.0.0.1"

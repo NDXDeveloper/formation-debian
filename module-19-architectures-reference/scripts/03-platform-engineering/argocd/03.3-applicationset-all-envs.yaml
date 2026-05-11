@@ -1,0 +1,72 @@
+# =============================================================================
+# Module 19 — Architectures de référence
+# Section 19.3.3 — GitOps workflow complet (ArgoCD ApplicationSet)
+# Fichier : argocd/applicationsets/apps-all-envs.yaml
+# Licence : CC BY 4.0
+# =============================================================================
+# ApplicationSet avec git/directories generator : ArgoCD scanne le dépôt
+# GitOps et crée automatiquement une Application par couple service ×
+# environnement, suivant la convention apps/<service>/overlays/<env>/.
+#
+# Ajouter un nouveau service = créer un répertoire dans le dépôt — pas de
+# manifest ArgoCD à écrire.
+#
+# Note Go template : `.path.segments` est un TABLEAU des composants du chemin.
+# Pour "apps/api-users/overlays/dev" :
+#   - .path.segments    = ["apps", "api-users", "overlays", "dev"]
+#   - index .path.segments 1 = "api-users"
+#   - .path.basename    = "dev"
+# =============================================================================
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: all-applications
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+
+  generators:
+    # Découverte automatique : chaque répertoire sous apps/ qui contient
+    # des overlays est un service à déployer
+    - git:
+        repoURL: https://gitlab.apps.internal.example.com/infra/k8s-deployments.git
+        revision: main
+        directories:
+          - path: 'apps/*/overlays/*'
+
+  template:
+    metadata:
+      name: '{{ index .path.segments 1 }}-{{ .path.basename }}'
+      # Résultat : api-users-dev, api-users-staging, api-users-production
+      labels:
+        app.kubernetes.io/part-of: '{{ index .path.segments 1 }}'
+        platform.example.com/environment: '{{ .path.basename }}'
+      annotations:
+        notifications.argoproj.io/subscribe.on-sync-succeeded.slack: deployments
+        notifications.argoproj.io/subscribe.on-sync-failed.slack: deployments-alerts
+        notifications.argoproj.io/subscribe.on-health-degraded.slack: deployments-alerts
+    spec:
+      project: applications
+      source:
+        repoURL: https://gitlab.apps.internal.example.com/infra/k8s-deployments.git
+        targetRevision: main
+        path: '{{ .path.path }}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{ index .path.segments 1 }}-{{ .path.basename }}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=false    # Les namespaces sont gérés par le projet platform
+          - PrunePropagationPolicy=foreground
+          - ApplyOutOfSyncOnly=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 5m

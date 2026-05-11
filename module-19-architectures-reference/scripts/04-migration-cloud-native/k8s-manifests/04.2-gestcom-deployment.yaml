@@ -1,0 +1,84 @@
+# =============================================================================
+# Module 19 — Architectures de référence
+# Section 19.4.2 — Conteneurisation microservices (Deployment GestCom)
+# Fichier : k8s/base/deployment.yaml
+# Licence : CC BY 4.0
+# =============================================================================
+# Pattern Deployment cloud-native pour application PHP/Symfony :
+#   - 3 probes (startup pour préchauffage cache, liveness, readiness)
+#   - envFrom : configMapRef + secretRef (pas de hardcoded values)
+#   - PVC pour les uploads (montage du seul stockage stateful)
+#   - annotations Prometheus auto-discovery + Backstage tracking
+#
+# La startupProbe est CRITIQUE pour PHP/Symfony : le préchauffage cache
+# Symfony peut prendre 10-30s, sans elle k8s redémarrerait le pod en boucle.
+# =============================================================================
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gestcom
+  labels:
+    app: gestcom
+    backstage.io/kubernetes-id: gestcom
+spec:
+  selector:
+    matchLabels:
+      app: gestcom
+  template:
+    metadata:
+      labels:
+        app: gestcom
+        backstage.io/kubernetes-id: gestcom
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: gestcom
+          image: harbor.apps.internal.example.com/equipe-commerce/gestcom:latest
+          ports:
+            - containerPort: 8080
+              name: http
+          envFrom:
+            - configMapRef:
+                name: gestcom-config
+            - secretRef:
+                name: gestcom-secrets
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            failureThreshold: 30
+            periodSeconds: 5
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: gestcom-uploads

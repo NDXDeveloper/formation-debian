@@ -1,0 +1,169 @@
+# =============================================================================
+# Module 19 — Architectures de référence
+# Section 19.2.4 — Pipeline CI/CD complet (.gitlab-ci.yml)
+# Fichier : .gitlab-ci.yml — pipeline applicatif Go cloud-native (extrait stages 1-3)
+# Licence : CC BY 4.0
+# =============================================================================
+# Pipeline complet pour application cloud-native sur infrastructure hybride :
+#   1. lint    : code (golangci-lint), Dockerfile (hadolint), K8s (kube-linter), Helm
+#   2. build   : compilation statique (CGO=0), cache Go modules
+#   3. test    : unit + integration (services PostgreSQL + Redis sidecars)
+#   4. scan    : vulnérabilités CVE (Trivy)
+#   5. package : image Docker (BuildKit rootless ou Kaniko)
+#   6. publish : push registry Harbor
+#   7. deploy  : promotion par environnement via GitOps (ArgoCD)
+#
+# Ce snippet présente les stages 1-3. Pour la version complète (scan/package/
+# publish/deploy), voir la section 19.2.4 du module.
+#
+# Validation : yamllint + structure GitLab CI (stages, jobs)
+# =============================================================================
+---
+# ─── Variables globales ───
+variables:
+  # Registry
+  REGISTRY: harbor.apps.internal.example.com
+  IMAGE_NAME: ${REGISTRY}/${CI_PROJECT_PATH}
+  IMAGE_TAG: ${CI_COMMIT_SHORT_SHA}
+
+  # GitOps
+  GITOPS_REPO: gitlab.apps.internal.example.com/infra/k8s-deployments.git
+  GITOPS_BRANCH: main
+
+  # Versioning
+  APP_VERSION: ${CI_COMMIT_TAG:-${CI_COMMIT_SHORT_SHA}}
+
+# ─── Stages (ordre d'exécution) ───
+stages:
+  - lint
+  - build
+  - test
+  - scan
+  - package
+  - publish
+  - deploy-dev
+  - deploy-staging
+  - deploy-production
+
+# ─────────────────────────────────────────────
+# STAGE 1 : LINT — Qualité du code
+# ─────────────────────────────────────────────
+
+lint:code:
+  stage: lint
+  image: golangci/golangci-lint:latest
+  script:
+    - golangci-lint run --timeout 5m ./...
+  tags: [kubernetes]
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_COMMIT_BRANCH == "main"
+
+lint:dockerfile:
+  stage: lint
+  image: hadolint/hadolint:latest-debian
+  script:
+    - hadolint Dockerfile
+  tags: [kubernetes]
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - Dockerfile
+
+lint:kubernetes:
+  stage: lint
+  image:
+    name: stackrox/kube-linter:latest
+    entrypoint: [""]
+  script:
+    - /kube-linter lint k8s/
+  tags: [kubernetes]
+  allow_failure: true
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+      changes:
+        - k8s/**/*
+
+lint:helm:
+  stage: lint
+  image: alpine/helm:latest
+  script:
+    - helm lint charts/mon-app/
+    - helm template charts/mon-app/ -f charts/mon-app/values-staging.yaml > /dev/null
+  tags: [kubernetes]
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+      changes:
+        - charts/**/*
+
+# ─────────────────────────────────────────────
+# STAGE 2 : BUILD — Compilation
+# ─────────────────────────────────────────────
+
+build:app:
+  stage: build
+  image: golang:1.26-trixie
+  script:
+    - go mod download
+    - CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w -X main.version=${APP_VERSION}" -o bin/server ./cmd/server
+  artifacts:
+    paths:
+      - bin/
+    expire_in: 1 hour
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}-go
+    paths:
+      - .cache/go-mod
+  variables:
+    GOMODCACHE: ${CI_PROJECT_DIR}/.cache/go-mod
+  tags: [kubernetes]
+
+# ─────────────────────────────────────────────
+# STAGE 3 : TEST — Tests automatisés
+# ─────────────────────────────────────────────
+
+test:unit:
+  stage: test
+  image: golang:1.26-trixie
+  script:
+    - go test -race -coverprofile=coverage.out -covermode=atomic ./...
+    - go tool cover -func=coverage.out
+    # Conversion profil Go binaire → Cobertura XML pour intégration GitLab
+    - go install github.com/boumenot/gocover-cobertura@latest
+    - gocover-cobertura < coverage.out > coverage.xml
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+    paths:
+      - coverage.out
+      - coverage.xml
+  coverage: '/total:\s+\(statements\)\s+(\d+\.\d+)%/'
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}-go
+    paths:
+      - .cache/go-mod
+    policy: pull
+  tags: [kubernetes]
+
+test:integration:
+  stage: test
+  image: golang:1.26-trixie
+  services:
+    - name: postgres:17-trixie
+      alias: postgres
+    # Redis a basculé sous SSPL/RSAL fin 2024 ; le fork open source maintenu
+    # est Valkey (Linux Foundation). Les deux images sont API-compatibles.
+    - name: redis:8-trixie
+      alias: redis
+  variables:
+    POSTGRES_DB: test_db
+    POSTGRES_USER: test
+    POSTGRES_PASSWORD: test
+    DATABASE_URL: "postgresql://test:test@postgres:5432/test_db?sslmode=disable"
+    REDIS_URL: "redis://redis:6379"
+  script:
+    - go test -tags=integration ./tests/integration/...
+  tags: [kubernetes]

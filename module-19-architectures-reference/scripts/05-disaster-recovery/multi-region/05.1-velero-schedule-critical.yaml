@@ -1,0 +1,53 @@
+# =============================================================================
+# Module 19 — Architectures de référence
+# Section 19.5.1 — Multi-région cross-cloud (Velero schedules)
+# Fichier : velero/schedule-critical.yaml — namespaces critiques /6h
+# Licence : CC BY 4.0
+# =============================================================================
+# Deux schedules complémentaires :
+#   - critical-namespaces : namespaces vitaux toutes les 6h, rétention 30j
+#   - full-cluster        : cluster complet quotidien, rétention 7j
+#
+# defaultVolumesToFsBackup: true → backup des PVC via le module fs-backup
+# (Restic/Kopia) sans dépendre des snapshots CSI du provider.
+#
+# Préalable : velero install --provider aws --bucket entreprise-dr-backups ...
+# (cf. section 19.5.1 §2.2)
+# =============================================================================
+---
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: critical-namespaces
+  namespace: velero
+spec:
+  schedule: "0 */6 * * *"
+  template:
+    includedNamespaces:
+      - gestcom-production
+      - argocd
+      - backstage
+      - vault
+    includedResources:
+      - '*'
+    storageLocation: default
+    volumeSnapshotLocations:
+      - default
+    ttl: 720h            # Rétention : 30 jours
+    defaultVolumesToFsBackup: true
+---
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: full-cluster
+  namespace: velero
+spec:
+  schedule: "0 2 * * *"     # Tous les jours à 2h
+  template:
+    includedNamespaces:
+      - '*'
+    excludedNamespaces:
+      - kube-system          # Reconstituable via kubeadm
+    storageLocation: default
+    ttl: 168h                # Rétention : 7 jours
+    defaultVolumesToFsBackup: true

@@ -1,0 +1,50 @@
+# =============================================================================
+# Module 19 — Architectures de référence
+# Section 19.4.2 — Conteneurisation microservices (HPA GestCom)
+# Fichier : k8s/base/hpa.yaml — autoscaling horizontal CPU+RAM
+# Licence : CC BY 4.0
+# =============================================================================
+# HPA avec :
+#   - 2 métriques (CPU 70% + RAM 80%) : déclenche dès qu'une seule dépasse
+#   - behavior asymétrique : scale-up rapide (30s) / scale-down lent (5min)
+#     → évite l'oscillation
+#   - max 1 pod supprimé/min, max 2 pods ajoutés/min
+# =============================================================================
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: gestcom
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: gestcom
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300    # Attendre 5 min avant de réduire
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 60              # Max 1 pod supprimé par minute
+    scaleUp:
+      stabilizationWindowSeconds: 30
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 60              # Max 2 pods ajoutés par minute

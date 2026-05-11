@@ -1,0 +1,43 @@
+# =============================================================================
+# Module 19 — Architectures de référence
+# Section 19.1.1 — Configuration poste développeur Debian
+# Fichier : ~/.config/starship.toml — prompt cloud-native
+# Licence : CC BY 4.0
+# =============================================================================
+# Configuration Starship orientée DevOps/SRE :
+#   - durée des commandes lentes mise en évidence
+#   - contexte Kubernetes toujours visible (identifie le cluster ciblé)
+#   - statut Git condensé
+#   - détection conteneur (warning si on travaille dans un sandbox)
+#   - profil cloud actif (AWS/GCP)
+#
+# Installation Starship : voir 19.1.1 § 3.3
+# =============================================================================
+
+# Durée d'exécution des commandes (utile pour repérer les commandes lentes)
+[cmd_duration]
+min_time = 2_000
+format = "took [$duration](bold yellow) "
+
+# Contexte Kubernetes toujours visible
+[kubernetes]
+disabled = false
+format = '[$symbol$context( \($namespace\))](cyan bold) '
+
+# Git : informations condensées
+[git_branch]
+format = "[$symbol$branch(:$remote_branch)]($style) "
+
+[git_status]
+format = '([\[$all_status$ahead_behind\]]($style) )'
+
+# Indicateur de conteneur (détecte si on est dans un conteneur)
+[container]
+disabled = false
+
+# Cloud provider actif
+[aws]
+format = '[$symbol($profile )(\($region\) )]($style)'
+
+[gcloud]
+format = '[$symbol$account(@$domain)(\($project\))]($style) '

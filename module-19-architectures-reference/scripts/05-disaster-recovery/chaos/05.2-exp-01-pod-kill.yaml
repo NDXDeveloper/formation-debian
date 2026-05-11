@@ -1,0 +1,43 @@
+# =============================================================================
+# Module 19 — Architectures de référence
+# Section 19.5.2 — Chaos engineering (Expérience 1 — Pod Kill)
+# Fichier : chaos/exp-01-pod-kill.yaml
+# Licence : CC BY 4.0
+# =============================================================================
+# Hypothèse testée :
+#   « Si un pod GestCom est tué, le trafic est redirigé vers les pods
+#    restants en moins de 10 secondes, sans erreur visible utilisateur. »
+#
+# Mode `one` : un seul pod tué (pas tous). Toujours tester sur staging
+# avant la production.
+#
+# Vérification pendant l'expérience (autre terminal) :
+#   while true; do
+#     curl -s -o /dev/null -w "%{http_code}\n" \
+#       https://gestcom-staging.apps.internal.example.com/healthz
+#     sleep 1
+#   done
+# Attendu : 200 en continu, jamais de 502/503.
+#
+# Si le PDB minAvailable: 1 est configuré et qu'il y a ≥ 2 réplicas, le pod
+# tué est remplacé par le ReplicaSet en quelques secondes — utilisateurs
+# transparents.
+# =============================================================================
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: exp-01-gestcom-pod-kill
+  namespace: chaos-mesh
+  labels:
+    experiment: "exp-01"
+    target: gestcom
+spec:
+  action: pod-kill
+  mode: one                    # Tuer UN seul pod (pas tous)
+  selector:
+    namespaces:
+      - gestcom-staging        # Staging d'abord, jamais production directement
+    labelSelectors:
+      app: gestcom
+  duration: "30s"              # Durée de l'expérience
