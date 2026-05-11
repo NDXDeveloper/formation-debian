@@ -1,0 +1,46 @@
+# =============================================================================
+# Module 15 — Observabilité et monitoring
+# Section 15.2.4 — Grafana : configuration production
+# Fichier : extraits de /etc/grafana/grafana.ini
+# Licence : CC BY 4.0
+# =============================================================================
+# Snippet montrant les sections les plus modifiées en production.
+# La configuration complète par défaut (généralement >300 lignes) est
+# fournie par le paquet grafana — ce fichier ne contient QUE les
+# remplacements à appliquer.
+#
+# Pour les valeurs sensibles (admin_password notamment), préférer la
+# variable d'environnement GF_SECURITY_ADMIN_PASSWORD ou un Secret K8s
+# plutôt que la valeur en clair dans grafana.ini.
+# =============================================================================
+
+[server]
+# URL publique utilisée dans les liens (emails, alertes)
+root_url = https://grafana.example.com
+http_port = 3000
+# Protocole — en production, TLS est géré par le reverse proxy (Nginx/Caddy)
+protocol = http
+
+[database]
+# Par défaut SQLite, suffisant pour une instance unique
+# PostgreSQL recommandé pour la HA ou les grandes installations
+type = sqlite3
+path = /var/lib/grafana/grafana.db
+
+[security]
+# Désactiver la création de compte par les utilisateurs
+allow_sign_up = false
+# IMPORTANT : préférer GF_SECURITY_ADMIN_PASSWORD via systemd EnvironmentFile
+# admin_password = ${GRAFANA_ADMIN_PASSWORD}
+
+[auth]
+# Durée de validité du cookie de session
+login_maximum_inactive_lifetime_duration = 8h
+login_maximum_lifetime_duration = 24h
+
+[users]
+default_theme = dark
+
+[log]
+mode = console file
+level = info

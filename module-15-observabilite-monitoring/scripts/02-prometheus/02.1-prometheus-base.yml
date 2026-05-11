@@ -1,0 +1,89 @@
+# =============================================================================
+# Module 15 — Observabilité et monitoring
+# Section 15.2.1 — Prometheus : architecture et déploiement Debian
+# Fichier : /etc/prometheus/prometheus.yml — configuration de référence
+# Licence : CC BY 4.0
+# =============================================================================
+# Configuration de base pour un Prometheus 3.x sur Debian Trixie :
+#   - scrape_interval 15s (vs défaut 1m) pour réactivité raisonnable
+#   - external_labels identifient l'instance dans un déploiement multi-Prom
+#   - relabel_configs blackbox : pattern classique pour scraper un exporter
+#     proxy avec passage de la cible en paramètre HTTP
+#
+# Validation : promtool check config /etc/prometheus/prometheus.yml
+# =============================================================================
+---
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+  external_labels:
+    cluster: "debian-infra"
+    environment: "production"
+    region: "eu-west"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - "localhost:9093"
+
+rule_files:
+  - "/etc/prometheus/rules/*.yml"
+
+scrape_configs:
+  # Prometheus se scrape lui-même (meta-monitoring)
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Node Exporter sur le serveur local
+  - job_name: "node-local"
+    static_configs:
+      - targets: ["localhost:9100"]
+
+  # Node Exporters sur d'autres serveurs Debian
+  - job_name: "node-servers"
+    static_configs:
+      - targets:
+          - "db-01.internal:9100"
+          - "db-02.internal:9100"
+          - "web-01.internal:9100"
+          - "web-02.internal:9100"
+          - "mail-01.internal:9100"
+        labels:
+          datacenter: "dc1"
+
+  # PostgreSQL Exporter
+  - job_name: "postgresql"
+    static_configs:
+      - targets:
+          - "db-01.internal:9187"
+          - "db-02.internal:9187"
+
+  # Nginx Exporter
+  - job_name: "nginx"
+    static_configs:
+      - targets:
+          - "web-01.internal:9113"
+          - "web-02.internal:9113"
+
+  # Blackbox Exporter (monitoring synthétique HTTP)
+  # Pattern relabel : Prometheus scrape blackbox (localhost:9115) en passant
+  # la cible réelle via le paramètre URL `target`. La cible apparaît en
+  # label `instance` dans les métriques émises.
+  - job_name: "blackbox-http"
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - "https://www.example.com"
+          - "https://api.example.com/health"
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: "localhost:9115"

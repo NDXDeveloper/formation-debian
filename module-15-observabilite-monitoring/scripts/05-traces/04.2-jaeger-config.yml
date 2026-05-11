@@ -1,0 +1,77 @@
+# =============================================================================
+# Module 15 — Observabilité et monitoring
+# Section 15.4.2 — Jaeger : backend de traces all-in-one
+# Fichier : /etc/jaeger/jaeger-config.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Configuration Jaeger v2.17+ (utilise le format OTel Collector).
+#
+# Notes Jaeger v2.17+ (rupture vs v2.16) :
+#   - Extension `health_check` renommée `healthcheckv2` avec sous-protocoles
+#     `http:` et `grpc:` obligatoires
+#   - Backend badger restructuré :
+#       directory_key/directory_value → directories.keys/values
+#       span_store_ttl                → ttl.spans
+#       metrics_expiration_interval   → retiré
+#
+# Validation : tester via `jaeger --config /etc/jaeger/jaeger-config.yml`
+# (Jaeger v2 n'a pas de mode validate seul).
+# =============================================================================
+---
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317"
+      http:
+        endpoint: "0.0.0.0:4318"
+  # Compatibilité avec l'ancien format Jaeger
+  jaeger:
+    protocols:
+      thrift_http:
+        endpoint: "0.0.0.0:14268"
+      grpc:
+        endpoint: "0.0.0.0:14250"
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+
+exporters:
+  jaeger_storage_exporter:
+    trace_storage: badger_main
+
+extensions:
+  jaeger_storage:
+    backends:
+      badger_main:
+        badger:
+          directories:
+            keys: /var/lib/jaeger/keys
+            values: /var/lib/jaeger/values
+          ephemeral: false
+          maintenance_interval: 5m
+          ttl:
+            spans: 168h    # Rétention de 7 jours
+
+  jaeger_query:
+    storage:
+      traces: badger_main
+    ui:
+      config_file: /etc/jaeger/ui-config.json
+
+  healthcheckv2:
+    use_v2: true
+    http:
+      endpoint: "0.0.0.0:13133"
+    grpc:
+      endpoint: "0.0.0.0:13134"
+
+service:
+  extensions: [jaeger_storage, jaeger_query, healthcheckv2]
+  pipelines:
+    traces:
+      receivers: [otlp, jaeger]
+      processors: [batch]
+      exporters: [jaeger_storage_exporter]

@@ -1,0 +1,80 @@
+# =============================================================================
+# Module 15 — Observabilité et monitoring
+# Section 15.4.3 — Tempo : backend de traces Grafana
+# Fichier : /etc/tempo/tempo-config.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Tempo monolithique avec stockage S3-compatible (MinIO sur Debian).
+# Le metrics_generator produit des spanmetrics et des service_graphs
+# directement depuis les traces ingérées, exportés vers Prometheus via
+# remote write — alternative au connector spanmetrics du Collector OTel.
+#
+# Variables d'environnement attendues (à fournir via systemd EnvironmentFile)
+#   MINIO_ACCESS_KEY, MINIO_SECRET_KEY
+# Démarrer Tempo avec -config.expand-env=true pour interpoler ${...}.
+# =============================================================================
+---
+server:
+  http_listen_port: 3200
+  grpc_listen_port: 9095
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+ingester:
+  trace_idle_period: 30s
+  max_block_bytes: 1073741824    # 1 Go
+  max_block_duration: 5m
+
+compactor:
+  compaction:
+    block_retention: 336h        # 14 jours
+
+storage:
+  trace:
+    backend: s3
+    s3:
+      bucket: tempo-traces
+      endpoint: minio.internal:9000
+      access_key: ${MINIO_ACCESS_KEY}
+      secret_key: ${MINIO_SECRET_KEY}
+      insecure: true             # HTTP vers MinIO ; TLS en production
+      forcepathstyle: true
+    wal:
+      path: /var/lib/tempo/wal
+    local:
+      path: /var/lib/tempo/blocks
+
+metrics_generator:
+  registry:
+    external_labels:
+      source: tempo
+  storage:
+    path: /var/lib/tempo/generator/wal
+    remote_write:
+      - url: http://prometheus.internal:9090/api/v1/write
+  traces_storage:
+    path: /var/lib/tempo/generator/traces
+  processor:
+    service_graphs:
+      enabled: true
+      dimensions:
+        - http.method
+        - http.status_code
+    span_metrics:
+      enabled: true
+      dimensions:
+        - http.method
+        - http.status_code
+        - http.route
+
+overrides:
+  defaults:
+    metrics_generator:
+      processors: [service-graphs, span-metrics]

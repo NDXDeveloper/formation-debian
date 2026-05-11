@@ -1,0 +1,42 @@
+# =============================================================================
+# Module 15 — Observabilité et monitoring
+# Section 15.2.1 — Prometheus : file_sd_configs
+# Fichier : /etc/prometheus/targets/node-servers.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Pattern file_sd : la liste des cibles est dans un fichier externe que
+# Prometheus recharge automatiquement (sans HUP). Idéal pour Ansible/IaC :
+# le playbook met à jour ce fichier, Prometheus prend en compte les
+# nouvelles cibles dans la minute.
+#
+# Référencé via :
+#   scrape_configs:
+#     - job_name: 'node-servers'
+#       file_sd_configs:
+#         - files: ['/etc/prometheus/targets/node-servers.yml']
+#           refresh_interval: 1m
+# =============================================================================
+---
+- targets:
+    - "db-01.internal:9100"
+    - "db-02.internal:9100"
+  labels:
+    role: database
+    datacenter: dc1
+    environment: production
+
+- targets:
+    - "web-01.internal:9100"
+    - "web-02.internal:9100"
+    - "web-03.internal:9100"
+  labels:
+    role: webserver
+    datacenter: dc1
+    environment: production
+
+- targets:
+    - "mail-01.internal:9100"
+  labels:
+    role: mail
+    datacenter: dc1
+    environment: production

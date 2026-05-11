@@ -1,0 +1,83 @@
+# =============================================================================
+# Module 15 — Observabilité et monitoring
+# Section 15.2.3 — AlertManager : alertes burn rate SLO
+# Fichier : /etc/prometheus/rules/alerting-burn-rate-slo.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Pattern multi-fenêtres recommandé Google SRE :
+#   - critical (page) : burn 14.4x — budget mensuel épuisé en ~2 jours
+#   - warning         : burn 6x    — budget mensuel épuisé en ~5 jours
+#   - info (ticket)   : burn 1x    — érosion lente, à planifier
+#
+# Combiner deux fenêtres (longue + courte) élimine les faux positifs sans
+# retarder la détection d'incidents réels. Voir section 15.1.2 pour la
+# justification mathématique des seuils.
+#
+# Suppose des recording rules sli:orders_api:availability:rateXX déjà chargées
+# (cf. 02.2-recording-rules-sli.yml).
+#
+# Validation : promtool check rules /etc/prometheus/rules/alerting-burn-rate-slo.yml
+# =============================================================================
+---
+groups:
+  - name: slo-orders-api-burn-rate
+    rules:
+      # --- Burn rate critique : page immédiat ---
+      # Budget mensuel épuisé en ~2 jours au rythme actuel
+      - alert: OrdersAPISLOCriticalBurnRate
+        expr: |
+          (1 - sli:orders_api:availability:rate1h) / (1 - 0.999) > 14.4
+          and
+          (1 - sli:orders_api:availability:rate5m) / (1 - 0.999) > 14.4
+        for: 2m
+        labels:
+          severity: critical
+          service: orders-api
+          slo: availability
+          alert_type: burn_rate
+        annotations:
+          summary: "SLO critique — orders-api consomme son budget d'erreur trop vite"
+          description: |
+            Burn rate de disponibilité orders-api : {{ printf "%.1f" $value }}x.
+            Au-dessus de 14.4x, le budget d'erreur mensuel (SLO 99.9%) sera
+            consommé en environ 2 jours. Action immédiate requise.
+          runbook_url: "https://wiki.internal/runbooks/orders-api-slo-critical"
+
+      # --- Burn rate élevé : alerte urgente ---
+      # Budget mensuel épuisé en ~5 jours au rythme actuel
+      - alert: OrdersAPISLOHighBurnRate
+        expr: |
+          (1 - sli:orders_api:availability:rate6h) / (1 - 0.999) > 6
+          and
+          (1 - sli:orders_api:availability:rate30m) / (1 - 0.999) > 6
+        for: 5m
+        labels:
+          severity: warning
+          service: orders-api
+          slo: availability
+          alert_type: burn_rate
+        annotations:
+          summary: "SLO warning — orders-api consomme son budget d'erreur"
+          description: |
+            Le burn rate de disponibilité de orders-api est supérieur à 6x
+            sur les 6 dernières heures. Investigation requise.
+          runbook_url: "https://wiki.internal/runbooks/orders-api-slo-warning"
+
+      # --- Burn rate lent : ticket ---
+      # Érosion progressive du budget
+      - alert: OrdersAPISLOSlowBurnRate
+        expr: |
+          (1 - sli:orders_api:availability:rate3d) / (1 - 0.999) > 1
+          and
+          (1 - sli:orders_api:availability:rate6h) / (1 - 0.999) > 1
+        for: 30m
+        labels:
+          severity: info
+          service: orders-api
+          slo: availability
+          alert_type: burn_rate
+        annotations:
+          summary: "SLO info — érosion lente du budget d'erreur orders-api"
+          description: |
+            Le budget d'erreur de orders-api s'érode lentement
+            (burn rate > 1x sur 3 jours). À planifier dans le sprint.

@@ -1,0 +1,60 @@
+# =============================================================================
+# Module 15 — Observabilité et monitoring
+# Section 15.2.5 — node_exporter sur Debian
+# Fichier : /etc/systemd/system/node_exporter.service
+# Licence : CC BY 4.0
+# =============================================================================
+# Unité systemd hardenée pour node_exporter v1.11+ avec :
+#   - collecteurs additionnels activés (systemd, processes, tcpstat)
+#   - collecteurs inutiles désactivés (wifi, infiniband)
+#   - exclusions de devices (containers, K8s veth)
+#   - textfile_collector pour métriques custom
+#   - capability CAP_DAC_READ_SEARCH (accès /proc et /sys non-root)
+#
+# Création préalable : useradd --system --no-create-home --shell /usr/sbin/nologin node_exporter
+# +                    mkdir -p /var/lib/node_exporter/textfile_collector
+# +                    chown node_exporter:node_exporter /var/lib/node_exporter/textfile_collector
+# =============================================================================
+
+[Unit]
+Description=Prometheus Node Exporter
+Documentation=https://prometheus.io/docs/guides/node-exporter/
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=node_exporter
+Group=node_exporter
+ExecStart=/usr/local/bin/node_exporter \
+  --web.listen-address=0.0.0.0:9100 \
+  --web.telemetry-path=/metrics \
+  --collector.systemd \
+  --collector.processes \
+  --collector.tcpstat \
+  --no-collector.wifi \
+  --no-collector.infiniband \
+  --collector.diskstats.device-exclude="^(ram|loop|fd|dm-|sr|nbd)" \
+  --collector.filesystem.mount-points-exclude="^/(sys|proc|dev|host|etc|run)($$|/)" \
+  --collector.netdev.device-exclude="^(veth|docker|br-|cni|flannel|calico)" \
+  --collector.netclass.ignored-devices="^(veth|docker|br-|cni|flannel|calico)" \
+  --collector.textfile.directory=/var/lib/node_exporter/textfile_collector
+
+Restart=always
+RestartSec=5
+
+# Hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+ReadOnlyPaths=/proc /sys /var/lib/node_exporter/textfile_collector
+
+# Capabilities pour accès aux métriques système (sans exécuter en root)
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH
+AmbientCapabilities=CAP_DAC_READ_SEARCH
+
+[Install]
+WantedBy=multi-user.target

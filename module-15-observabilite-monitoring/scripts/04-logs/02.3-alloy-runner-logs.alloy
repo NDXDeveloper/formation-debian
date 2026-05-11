@@ -1,0 +1,31 @@
+// =============================================================================
+// Module 15 — Observabilité et monitoring
+// Section 15.2.3 — Grafana Alloy (successeur de Promtail) — collecte runner CI
+// Fichier : config Alloy syntaxe River
+// Licence : CC BY 4.0
+// =============================================================================
+// Configuration Alloy équivalente à Promtail pour la collecte journald
+// d'un runner GitLab. Alloy unifie métriques + logs + traces dans un
+// seul binaire (basé sur OTel Collector).
+//
+// Migration Promtail → Alloy : alloy convert --source-format=promtail \
+//                                            --output=alloy.river input.yml
+//
+// Référence : Module 14.2.3 § 6.4 (centralisation logs runners) qui
+// renvoie ici pour la syntaxe Alloy/River.
+// =============================================================================
+
+loki.source.journal "gitlab_runner" {
+  matches    = "_SYSTEMD_UNIT=gitlab-runner.service"
+  forward_to = [loki.write.default.receiver]
+  labels     = {
+    job  = "gitlab-runner",
+    host = constants.hostname,
+  }
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push"
+  }
+}

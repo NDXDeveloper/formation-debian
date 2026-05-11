@@ -1,0 +1,70 @@
+# =============================================================================
+# Module 15 — Observabilité et monitoring
+# Section 15.3.2 — Promtail (DEPRECATED EOL mars 2026) → migrer vers Alloy
+# Fichier : /etc/promtail/promtail-config.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# ⚠ Promtail est EOL depuis le 2 mars 2026. Conservé ici pour les
+# déploiements existants. Pour de NOUVELLES installations, utiliser
+# Grafana Alloy (cf. 03.2-alloy-config.alloy ci-joint).
+#
+# Configuration de référence Promtail v3.2.x (dernière avant EOL) :
+#   - lecture journald via libsystemd
+#   - lecture fichier nginx access.log avec parsing regex
+#   - drop des messages debug à la source
+#
+# Validation : promtail -check-syntax -config.file=/etc/promtail/promtail-config.yml
+# =============================================================================
+---
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0           # 0 = désactivé (Promtail n'écoute pas en gRPC)
+
+# Position de lecture (curseur) pour reprendre après un redémarrage
+positions:
+  filename: /var/lib/promtail/positions.yaml
+
+clients:
+  - url: http://loki.internal:3100/loki/api/v1/push
+    tenant_id: default
+    batchwait: 1s
+    batchsize: 1048576           # 1 Mo
+    timeout: 10s
+
+scrape_configs:
+  # === Logs journald ===
+  - job_name: journal
+    journal:
+      max_age: 12h               # Âge max au premier démarrage
+      labels:
+        job: systemd-journal
+        host: ${HOSTNAME}
+    relabel_configs:
+      - source_labels: ['__journal__systemd_unit']
+        target_label: 'unit'
+      - source_labels: ['__journal_priority_keyword']
+        target_label: 'level'
+    pipeline_stages:
+      # Filtrer les messages de debug en production (à la source)
+      - match:
+          selector: '{level="debug"}'
+          action: drop
+
+  # === Logs Nginx (format combined) ===
+  - job_name: nginx-access
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: nginx
+          type: access
+          host: ${HOSTNAME}
+          __path__: /var/log/nginx/access.log
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<remote_addr>[\w.]+) - (?P<remote_user>\S+) \[(?P<time_local>[^\]]+)\] "(?P<method>\w+) (?P<request_uri>\S+) \S+" (?P<status>\d+) (?P<body_bytes_sent>\d+) "(?P<http_referer>[^"]*)" "(?P<http_user_agent>[^"]*)"'
+      - labels:
+          method:
+          status:
+      - timestamp:
+          source: time_local
+          format: "02/Jan/2006:15:04:05 -0700"

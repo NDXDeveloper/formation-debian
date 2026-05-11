@@ -1,0 +1,133 @@
+# =============================================================================
+# Module 15 — Observabilité et monitoring
+# Section 15.2.3 — AlertManager : configuration complète
+# Fichier : /etc/alertmanager/alertmanager.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Configuration de production pour AlertManager 0.32+ :
+#   - arbre de routage 4 niveaux (severity → component → équipe)
+#   - 4 receivers (email, PagerDuty critique, PagerDuty infra, Slack)
+#   - 2 inhibit_rules (critical supprime warning, NodeDown supprime composants)
+#
+# Secrets : tous les tokens/passwords sont chargés depuis des fichiers
+# (`*_file`) avec permissions 600 — pas de valeurs en clair dans le YAML.
+# Voir runbook : créer ces fichiers via `tee` + `chmod 600` + `chown alertmanager`.
+#
+# Validation : amtool check-config /etc/alertmanager/alertmanager.yml
+# =============================================================================
+---
+global:
+  resolve_timeout: 5m
+
+  smtp_smarthost: 'smtp.internal:587'
+  smtp_from: 'alertmanager@example.com'
+  smtp_auth_username: 'alertmanager'
+  smtp_auth_password_file: '/etc/alertmanager/smtp_password'
+  smtp_require_tls: true
+
+  slack_api_url_file: '/etc/alertmanager/slack_webhook_url'
+
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+route:
+  receiver: 'default-email'
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+  routes:
+    # Alertes critiques → page immédiat
+    - matchers:
+        - severity="critical"
+      receiver: 'pagerduty-critical'
+      group_wait: 10s
+      repeat_interval: 1h
+      continue: false
+      routes:
+        # Sous-route : critique infra → équipe infra
+        - matchers:
+            - component=~"storage|network|memory"
+          receiver: 'pagerduty-infra'
+
+    # Alertes warning → canal Slack
+    - matchers:
+        - severity="warning"
+      receiver: 'slack-warnings'
+      group_wait: 1m
+      repeat_interval: 4h
+
+    # Alertes SLO → canal SLO dédié
+    - matchers:
+        - alert_type="burn_rate"
+      receiver: 'slack-slo'
+      group_by: ['service', 'slo']
+      repeat_interval: 2h
+
+    # Alertes info → ticket uniquement
+    - matchers:
+        - severity="info"
+      receiver: 'webhook-ticketing'
+      group_wait: 10m
+      repeat_interval: 24h
+
+receivers:
+  - name: 'default-email'
+    email_configs:
+      - to: 'ops-team@example.com'
+        send_resolved: true
+
+  - name: 'pagerduty-critical'
+    pagerduty_configs:
+      - routing_key_file: '/etc/alertmanager/pagerduty_key'
+        severity: critical
+        description: '{{ .CommonAnnotations.summary }}'
+        details:
+          firing: '{{ template "pagerduty.default.description" . }}'
+
+  - name: 'pagerduty-infra'
+    pagerduty_configs:
+      - routing_key_file: '/etc/alertmanager/pagerduty_infra_key'
+        severity: critical
+
+  - name: 'slack-warnings'
+    slack_configs:
+      - channel: '#ops-alerts'
+        send_resolved: true
+        title: '{{ if eq .Status "firing" }}🔥{{ else }}✅{{ end }} {{ .CommonLabels.alertname }}'
+        text: >-
+          {{ range .Alerts }}
+          *{{ .Labels.instance }}* — {{ .Annotations.summary }}
+          {{ if .Annotations.runbook_url }}<{{ .Annotations.runbook_url }}|Runbook>{{ end }}
+          {{ end }}
+
+  - name: 'slack-slo'
+    slack_configs:
+      - channel: '#slo-alerts'
+        send_resolved: true
+        title: 'SLO {{ .CommonLabels.service }} — {{ .CommonLabels.slo }}'
+        text: >-
+          {{ range .Alerts }}
+          Burn rate : {{ .Annotations.description }}
+          {{ end }}
+
+  - name: 'webhook-ticketing'
+    webhook_configs:
+      - url: 'http://ticket-bridge.internal:8080/create'
+        send_resolved: false
+
+inhibit_rules:
+  # Critical supprime warning pour la même alerte et instance
+  - source_matchers:
+      - severity="critical"
+    target_matchers:
+      - severity="warning"
+    equal: ['alertname', 'instance']
+
+  # NodeDown supprime les alertes de composants sur le même nœud
+  - source_matchers:
+      - alertname="NodeDown"
+    target_matchers:
+      - component=~"storage|network|memory|cpu"
+    equal: ['instance']

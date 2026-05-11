@@ -1,0 +1,68 @@
+# =============================================================================
+# Module 15 — Observabilité et monitoring
+# Section 15.2.4 — Grafana : sidecar de métadonnées dashboard
+# Fichier : 02.4-service-overview-red-slo.meta.yaml
+# Licence : CC BY 4.0
+# =============================================================================
+# Métadonnées du dashboard JSON jumeau (le format JSON Grafana ne supporte
+# pas les commentaires — toute documentation passe par ce sidecar OU par
+# la clé `description` du JSON).
+# =============================================================================
+---
+dashboard:
+  uid: service-overview-red-slo
+  title: Service Overview — RED + SLO
+  source_section: "15.2.4 § 4.2 — Dashboard de service (pattern RED + SLO)"
+  source_repo_path: scripts/03-grafana/dashboards/02.4-service-overview-red-slo.json
+
+description: |
+  Dashboard de service combinant les métriques RED (Rate, Errors, Duration)
+  avec le suivi SLO (disponibilité, budget d'erreur, burn rate).
+  Pattern recommandé pour tout service applicatif avec instrumentation
+  prometheus_client (ou bridge OTel → Prometheus).
+
+variables:
+  - name: service
+    type: query
+    description: Sélectionne le service via label `job` Prometheus
+    query: 'label_values(up, job)'
+
+panels:
+  - id: 1
+    type: stat
+    title: Disponibilité (30j)
+    metric: sli:orders_api:availability:rate30d
+    thresholds: 'red < 99.5% < yellow < 99.9% < green'
+  - id: 2
+    type: stat
+    title: Budget d'erreur restant
+    formula: '1 - ((1 - sli) / (1 - 0.999))'
+    thresholds: 'red < 25% < yellow < 50% < green'
+  - id: 3
+    type: stat
+    title: Burn rate (1h)
+    formula: '(1 - sli_1h) / (1 - 0.999)'
+    thresholds: 'green < 1 < yellow < 6 < red'
+  - id: 4
+    type: timeseries
+    title: Taux de requêtes (RPS) par code statut
+    metric: rate(http_requests_total) by status
+  - id: 5
+    type: timeseries
+    title: Latence (p50, p90, p99)
+    metric: histogram_quantile(rate(http_request_duration_seconds_bucket))
+
+datasources:
+  - prometheus (uid=prometheus, requise)
+
+annotations:
+  - source: tag deployment (alimenté par add-deploy-annotation.sh — cf. fichier jumeau)
+
+prerequisites:
+  - Recording rules sli:orders_api:availability:rate{5m,1h,30d} chargées
+    (cf. scripts/02-prometheus/rules/02.2-recording-rules-sli.yml)
+  - Application instrumentée avec http_requests_total + http_request_duration_seconds_bucket
+
+source_inspiration: |
+  Construit à partir des principes énoncés en 15.2.4 § 4.1 (hiérarchie visuelle,
+  orientation service, densité maîtrisée, cohérence visuelle).

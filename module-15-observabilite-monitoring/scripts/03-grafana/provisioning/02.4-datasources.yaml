@@ -1,0 +1,90 @@
+# =============================================================================
+# Module 15 — Observabilité et monitoring
+# Section 15.2.4 — Grafana : provisioning des data sources
+# Fichier : /etc/grafana/provisioning/datasources/datasources.yaml
+# Licence : CC BY 4.0
+# =============================================================================
+# Provisioning Grafana : data sources créées au démarrage, non modifiables
+# via l'interface (`editable: false`). Garantit la cohérence entre
+# environnements et permet le versionnement Git.
+#
+# Configurations clés pour la corrélation inter-piliers :
+#   - exemplarTraceIdDestinations  (Prometheus → Tempo via exemplars)
+#   - derivedFields                (Loki → Tempo via trace_id dans les logs)
+#   - tracesToLogsV2 + tracesToMetrics (Tempo → Loki + Tempo → Prometheus)
+#
+# Le UID `prometheus`, `loki`, `tempo` sont stables : référencés par les
+# dashboards JSON et par les configurations de corrélation croisées.
+# =============================================================================
+---
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://localhost:9090
+    uid: prometheus
+    isDefault: true
+    jsonData:
+      timeInterval: '15s'          # Cohérent avec scrape_interval
+      httpMethod: POST             # POST pour les requêtes longues
+      exemplarTraceIdDestinations:
+        - name: traceID
+          datasourceUid: tempo       # Lien exemplar → Tempo
+    editable: false
+
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki.monitoring.svc:3100
+    uid: loki
+    jsonData:
+      derivedFields:
+        - datasourceUid: tempo
+          matcherRegex: '"trace_id":"(\w+)"'
+          name: TraceID
+          url: '$${__value.raw}'
+    editable: false
+
+  - name: Tempo
+    type: tempo
+    access: proxy
+    url: http://tempo.monitoring.svc:3200
+    uid: tempo
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: loki
+        filterByTraceID: true
+        filterBySpanID: false
+        customQuery: true
+        query: '{service="${__span.tags["service.name"]}"} | json | trace_id="${__span.traceId}"'
+      tracesToMetrics:
+        datasourceUid: prometheus
+        spanStartTimeShift: '-1h'
+        spanEndTimeShift: '1h'
+        # Note sur le nommage des métriques :
+        # - Le connector `spanmetrics` de l'OTel Collector utilise par défaut
+        #   le namespace `traces.span.metrics` qui devient `traces_span_metrics_*`
+        #   après normalisation Prometheus. Label de service : `service_name`.
+        # - Le `metrics_generator` de Tempo émet par défaut des
+        #   `traces_spanmetrics_*` avec un label `service`.
+        # Choisir UNE seule source pour éviter la duplication.
+        queries:
+          - name: 'Request rate'
+            query: 'sum(rate(traces_span_metrics_calls_total{service_name="$__tags.service.name"}[$__rate_interval]))'
+          - name: 'Error rate'
+            query: 'sum(rate(traces_span_metrics_calls_total{service_name="$__tags.service.name",status_code="STATUS_CODE_ERROR"}[$__rate_interval]))'
+          - name: 'Duration (p99)'
+            query: 'histogram_quantile(0.99, sum(rate(traces_span_metrics_duration_milliseconds_bucket{service_name="$__tags.service.name"}[$__rate_interval])) by (le))'
+      serviceMap:
+        datasourceUid: prometheus
+      nodeGraph:
+        enabled: true
+      search:
+        hide: false
+      traceQuery:
+        timeShiftEnabled: true
+        spanStartTimeShift: '-30m'
+        spanEndTimeShift: '30m'
+    editable: false

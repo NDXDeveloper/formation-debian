@@ -1,0 +1,52 @@
+# =============================================================================
+# Module 15 — Observabilité et monitoring
+# Section 15.2.3 — AlertManager : tests unitaires des alertes
+# Fichier : /etc/prometheus/tests/alert-tests.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Tests unitaires pour les alerting rules — exécutables via :
+#   promtool test rules /etc/prometheus/tests/alert-tests.yml
+#
+# Le moteur simule l'évaluation du PromQL sur les input_series donnés et
+# vérifie que les alertes attendues se déclenchent (ou non) au temps
+# spécifié, avec les labels exacts.
+#
+# Pratique fortement recommandée avant tout déploiement en production :
+# une régression dans une alerting rule (typo, opérateur inversé, mauvais
+# label) peut masquer des incidents pendant des semaines avant détection.
+# =============================================================================
+---
+rule_files:
+  - ../rules/02.3-alerting-node-infrastructure.yml
+
+evaluation_interval: 1m
+
+tests:
+  - interval: 1m
+    input_series:
+      - series: 'node_filesystem_avail_bytes{mountpoint="/",fstype="ext4",instance="web-01:9100"}'
+        values: "5e9 4e9 3e9 2e9 1e9 0.5e9 0.5e9 0.5e9 0.5e9 0.5e9 0.5e9 0.5e9"
+      - series: 'node_filesystem_size_bytes{mountpoint="/",fstype="ext4",instance="web-01:9100"}'
+        values: "50e9 50e9 50e9 50e9 50e9 50e9 50e9 50e9 50e9 50e9 50e9 50e9"
+
+    alert_rule_test:
+      # Franchissement du seuil < 10% à t=1m (4e9/50e9 = 8%).
+      # Avec for: 10m, l'alerte passe pending → firing à t=11m exactement.
+      - eval_time: 11m
+        alertname: NodeDiskSpaceCritical
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              component: storage
+              team: infrastructure
+              mountpoint: "/"
+              fstype: "ext4"
+              instance: "web-01:9100"
+            exp_annotations:
+              summary: "Espace disque critique sur web-01:9100"
+              runbook_url: "https://wiki.internal/runbooks/disk-space-critical"
+              dashboard_url: "https://grafana.internal/d/node-exporter/node?var-instance=web-01:9100"
+              description: |
+                Le filesystem root de web-01:9100 n'a plus que
+                1% d'espace disponible.
+                Seuil : 10%. Situation persistante depuis au moins 10 minutes.

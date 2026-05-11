@@ -1,0 +1,67 @@
+# =============================================================================
+# Module 15 — Observabilité et monitoring
+# Section 15.2.1 — blackbox_exporter : monitoring synthétique
+# Fichier : /etc/blackbox_exporter/blackbox.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Configuration des modules de probe pour blackbox_exporter.
+# Chaque module définit COMMENT sonder une cible (HTTP, TCP, ICMP, DNS).
+# Les CIBLES sont définies côté Prometheus via le pattern relabel
+# (cf. 02.1-prometheus-base.yml job blackbox-http).
+#
+# Les métriques produites incluent :
+#   - probe_success                         (0/1)
+#   - probe_duration_seconds                (latence)
+#   - probe_http_status_code                (code HTTP retourné)
+#   - probe_ssl_earliest_cert_expiry        (date expiration TLS)
+#   - probe_dns_lookup_time_seconds         (résolution DNS)
+# =============================================================================
+---
+modules:
+  http_2xx:
+    prober: http
+    timeout: 5s
+    http:
+      preferred_ip_protocol: ip4
+      valid_status_codes: [200, 201, 202, 203, 204]
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+      method: GET
+      follow_redirects: true
+      fail_if_ssl: false
+      fail_if_not_ssl: true     # Force HTTPS pour les cibles publiques
+      tls_config:
+        insecure_skip_verify: false
+
+  http_post_2xx:
+    prober: http
+    timeout: 5s
+    http:
+      method: POST
+      headers:
+        Content-Type: application/json
+      body: '{"healthcheck":true}'
+
+  tcp_connect:
+    prober: tcp
+    timeout: 5s
+
+  ssh_banner:
+    prober: tcp
+    timeout: 5s
+    tcp:
+      query_response:
+        - expect: "^SSH-2.0-"
+
+  icmp:
+    prober: icmp
+    timeout: 5s
+    icmp:
+      preferred_ip_protocol: ip4
+
+  dns_internal:
+    prober: dns
+    timeout: 5s
+    dns:
+      query_name: "internal.example.com"
+      query_type: "A"
+      valid_rcodes: ["NOERROR"]

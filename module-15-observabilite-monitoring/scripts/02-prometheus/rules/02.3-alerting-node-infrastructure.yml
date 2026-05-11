@@ -1,0 +1,125 @@
+# =============================================================================
+# Module 15 — Observabilité et monitoring
+# Section 15.2.3 — AlertManager : alertes infrastructure (cause-pointing)
+# Fichier : /etc/prometheus/rules/alerting-node-infrastructure.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Alertes complémentaires aux alertes SLO. Quand une alerte SLO se déclenche,
+# ces alertes infrastructure aident à identifier la CAUSE RACINE :
+# « le SLO a chuté ET la mémoire d'un nœud est saturée → corrélation »
+#
+# Patterns notables :
+#   - predict_linear() : prédiction de remplissage disque
+#   - increase() avec for: 0m : alerte immédiate sur événement discret (OOM)
+#   - blackbox probe_ssl_earliest_cert_expiry : monitoring synthétique TLS
+#
+# Validation : promtool check rules /etc/prometheus/rules/alerting-node-infrastructure.yml
+# =============================================================================
+---
+groups:
+  - name: node-alerts
+    interval: 30s
+    rules:
+      # Espace disque critique
+      - alert: NodeDiskSpaceCritical
+        expr: |
+          (
+            node_filesystem_avail_bytes{mountpoint="/", fstype!="tmpfs"}
+            / node_filesystem_size_bytes{mountpoint="/", fstype!="tmpfs"}
+          ) < 0.10
+        for: 10m
+        labels:
+          severity: critical
+          component: storage
+          team: infrastructure
+        annotations:
+          summary: "Espace disque critique sur {{ $labels.instance }}"
+          description: |
+            Le filesystem root de {{ $labels.instance }} n'a plus que
+            {{ $value | humanizePercentage }} d'espace disponible.
+            Seuil : 10%. Situation persistante depuis au moins 10 minutes.
+          runbook_url: "https://wiki.internal/runbooks/disk-space-critical"
+          dashboard_url: "https://grafana.internal/d/node-exporter/node?var-instance={{ $labels.instance }}"
+
+      # Nœud Debian injoignable
+      - alert: NodeDown
+        expr: up{job="node-servers"} == 0
+        for: 3m
+        labels:
+          severity: critical
+          component: infrastructure
+        annotations:
+          summary: "Nœud {{ $labels.instance }} injoignable"
+          runbook_url: "https://wiki.internal/runbooks/node-down"
+
+      # Prédiction de remplissage disque
+      - alert: NodeDiskWillFillIn4Hours
+        expr: |
+          predict_linear(
+            node_filesystem_avail_bytes{mountpoint="/", fstype!="tmpfs"}[6h], 4*3600
+          ) < 0
+          and
+          node_filesystem_avail_bytes{mountpoint="/", fstype!="tmpfs"} > 0
+        for: 30m
+        labels:
+          severity: warning
+          component: storage
+        annotations:
+          summary: "Le disque de {{ $labels.instance }} sera plein dans ~4h"
+
+      # Mémoire disponible critique
+      - alert: NodeMemoryCritical
+        expr: |
+          (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) < 0.10
+        for: 5m
+        labels:
+          severity: warning
+          component: memory
+        annotations:
+          summary: "Mémoire critique sur {{ $labels.instance }} (< 10%)"
+
+      # OOM kills détectés (alerte immédiate)
+      - alert: NodeOOMKillDetected
+        expr: increase(node_vmstat_oom_kill[5m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+          component: memory
+        annotations:
+          summary: "OOM kill détecté sur {{ $labels.instance }}"
+
+      # Charge système élevée (load > 2x nb CPU)
+      - alert: NodeHighLoadAverage
+        expr: |
+          node_load15
+          / count without (cpu, mode) (node_cpu_seconds_total{mode="idle"})
+          > 2
+        for: 15m
+        labels:
+          severity: warning
+          component: cpu
+        annotations:
+          summary: "Charge élevée sur {{ $labels.instance }} (load15 > 2x CPU)"
+
+      # Erreurs réseau
+      - alert: NodeNetworkErrors
+        expr: |
+          rate(node_network_receive_errs_total[5m])
+          + rate(node_network_transmit_errs_total[5m])
+          > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: network
+        annotations:
+          summary: "Erreurs réseau sur {{ $labels.instance }}"
+
+      # Certificat TLS expirant bientôt (via blackbox_exporter)
+      - alert: TLSCertExpiringSoon
+        expr: probe_ssl_earliest_cert_expiry - time() < 7 * 86400
+        for: 1h
+        labels:
+          severity: warning
+          component: tls
+        annotations:
+          summary: "Certificat TLS de {{ $labels.instance }} expire dans < 7 jours"

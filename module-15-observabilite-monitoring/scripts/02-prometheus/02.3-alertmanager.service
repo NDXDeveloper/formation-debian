@@ -1,0 +1,40 @@
+# =============================================================================
+# Module 15 — Observabilité et monitoring
+# Section 15.2.3 — AlertManager : unité systemd
+# Fichier : /etc/systemd/system/alertmanager.service
+# Licence : CC BY 4.0
+# =============================================================================
+# Le flag --cluster.listen-address active le mode cluster d'AlertManager,
+# qui permet à plusieurs instances de se coordonner pour la déduplication
+# et le silencing. Activable même avec une seule instance — prépare une
+# montée en HA sans modification de l'unité.
+# =============================================================================
+
+[Unit]
+Description=Prometheus AlertManager
+Documentation=https://prometheus.io/docs/alerting/alertmanager/
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=alertmanager
+Group=alertmanager
+ExecStart=/usr/local/bin/alertmanager \
+  --config.file=/etc/alertmanager/alertmanager.yml \
+  --storage.path=/var/lib/alertmanager/ \
+  --web.listen-address=0.0.0.0:9093 \
+  --web.external-url=http://alertmanager.internal:9093 \
+  --cluster.listen-address=0.0.0.0:9094
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=5
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/alertmanager/
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

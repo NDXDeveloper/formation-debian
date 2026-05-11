@@ -1,0 +1,13 @@
+{
+  "dependencies": {
+    "menuEnabled": true
+  },
+  "monitor": {
+    "menuEnabled": true
+  },
+  "archiveEnabled": false,
+  "tracking": {
+    "gaID": ""
+  },
+  "_meta": "Module 15 — Observabilité et monitoring | Section 15.4.2 | Configuration de l'interface utilisateur Jaeger | Référencé par /etc/jaeger/jaeger-config.yml extension jaeger_query.ui.config_file | Licence CC BY 4.0"
+}

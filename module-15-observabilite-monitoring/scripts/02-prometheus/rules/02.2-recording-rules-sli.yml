@@ -1,0 +1,75 @@
+# =============================================================================
+# Module 15 — Observabilité et monitoring
+# Section 15.2.2 — PromQL et métriques custom (recording rules SLI)
+# Fichier : /etc/prometheus/rules/recording-rules-sli.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Recording rules pré-calculant les SLI sur plusieurs fenêtres temporelles.
+# Bénéfices :
+#   - les requêtes interactives Grafana sont quasi-instantanées
+#   - les alerting rules deviennent lisibles
+#   - une seule source de vérité pour les SLI (cohérence garantie)
+#
+# Convention de nommage : sli:<service>:<indicateur>:<fenetre>
+# (préfixe `sli:` pour distinguer des métriques brutes scrapées)
+#
+# Validation : promtool check rules /etc/prometheus/rules/recording-rules-sli.yml
+# =============================================================================
+---
+groups:
+  - name: slo-orders-api
+    rules:
+      # SLI de disponibilité : taux de requêtes réussies
+      - record: sli:orders_api:availability:rate5m
+        expr: |
+          sum(rate(http_requests_total{job="orders-api",status!~"5.."}[5m]))
+          /
+          sum(rate(http_requests_total{job="orders-api"}[5m]))
+
+      - record: sli:orders_api:availability:rate30m
+        expr: |
+          sum(rate(http_requests_total{job="orders-api",status!~"5.."}[30m]))
+          /
+          sum(rate(http_requests_total{job="orders-api"}[30m]))
+
+      - record: sli:orders_api:availability:rate1h
+        expr: |
+          sum(rate(http_requests_total{job="orders-api",status!~"5.."}[1h]))
+          /
+          sum(rate(http_requests_total{job="orders-api"}[1h]))
+
+      - record: sli:orders_api:availability:rate6h
+        expr: |
+          sum(rate(http_requests_total{job="orders-api",status!~"5.."}[6h]))
+          /
+          sum(rate(http_requests_total{job="orders-api"}[6h]))
+
+      - record: sli:orders_api:availability:rate3d
+        expr: |
+          sum(rate(http_requests_total{job="orders-api",status!~"5.."}[3d]))
+          /
+          sum(rate(http_requests_total{job="orders-api"}[3d]))
+
+      # SLI de latence : proportion de requêtes < 300ms
+      - record: sli:orders_api:latency300ms:rate5m
+        expr: |
+          sum(rate(http_request_duration_seconds_bucket{job="orders-api",le="0.3"}[5m]))
+          /
+          sum(rate(http_request_duration_seconds_count{job="orders-api"}[5m]))
+
+      # SLI de disponibilité agrégé sur 30 jours (fenêtre du SLO)
+      # Note : on utilise increase() plutôt que rate() pour le ratio long terme,
+      # car on raisonne en proportion de requêtes plutôt qu'en taux.
+      - record: sli:orders_api:availability:rate30d
+        expr: |
+          sum(increase(http_requests_total{job="orders-api",status!~"5.."}[30d]))
+          /
+          sum(increase(http_requests_total{job="orders-api"}[30d]))
+
+      # Consommation du budget d'erreur (disponibilité) sur 30 jours
+      # Résultat : fraction du budget restante (1 = 100% intact, 0 = épuisé)
+      - record: error_budget:orders_api:availability:remaining
+        expr: |
+          1 - (
+            (1 - sli:orders_api:availability:rate30d) / (1 - 0.999)
+          )

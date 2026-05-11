@@ -1,0 +1,81 @@
+# =============================================================================
+# Module 15 — Observabilité et monitoring
+# Section 15.3.2 — Loki : architecture monolithique single-node
+# Fichier : /etc/loki/loki-config.yml
+# Licence : CC BY 4.0
+# =============================================================================
+# Configuration Loki 3.x mode monolithique (target: all) avec stockage
+# filesystem local. Adapté à l'apprentissage et aux petits déploiements.
+# Pour production multi-instances, basculer sur SSD (read/write) + S3/MinIO.
+#
+# Notes Loki :
+#   - Backend d'index : TSDB UNIQUEMENT (les autres backends sont
+#     dépréciés depuis Loki 2.8 et seront retirés)
+#   - Port gRPC : 9096 ici (vs défaut 9095) pour éviter le conflit avec
+#     Tempo qui utilise 9095 par défaut
+#
+# Validation : loki -verify-config -config.file=/etc/loki/loki-config.yml
+# =============================================================================
+---
+target: all    # Mode monolithique
+
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9096    # 9095 par défaut Loki, mais utilisé par Tempo
+  log_level: info
+
+common:
+  path_prefix: /var/lib/loki
+  replication_factor: 1     # 1 = single-node ; 3 + memberlist en HA
+  ring:
+    kvstore:
+      store: inmemory       # inmemory single-node ; memberlist/consul/etcd en HA
+
+schema_config:
+  configs:
+    - from: "2024-01-01"
+      store: tsdb              # Seul backend recommandé en 2026
+      object_store: filesystem # filesystem local ou s3 (MinIO)
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+storage_config:
+  tsdb_shipper:
+    active_index_directory: /var/lib/loki/index
+    cache_location: /var/lib/loki/cache
+  filesystem:
+    directory: /var/lib/loki/chunks
+
+limits_config:
+  retention_period: 30d
+  max_query_lookback: 30d
+  ingestion_rate_mb: 10                  # Débit max d'ingestion (Mo/s)
+  ingestion_burst_size_mb: 20
+  per_stream_rate_limit: 5MB
+  max_entries_limit_per_query: 5000
+  max_query_series: 500
+
+compactor:
+  working_directory: /var/lib/loki/compactor
+  compaction_interval: 10m
+  retention_enabled: true
+  retention_delete_delay: 2h
+  delete_request_store: filesystem
+
+ingester:
+  wal:
+    dir: /var/lib/loki/wal
+  lifecycler:
+    ring:
+      replication_factor: 1
+
+query_range:
+  align_queries_with_step: true
+  cache_results: true
+  results_cache:
+    cache:
+      embedded_cache:
+        enabled: true
+        max_size_mb: 256

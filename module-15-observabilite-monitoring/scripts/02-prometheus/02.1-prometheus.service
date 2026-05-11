@@ -1,0 +1,58 @@
+# =============================================================================
+# Module 15 — Observabilité et monitoring
+# Section 15.2.1 — Prometheus : architecture et déploiement Debian
+# Fichier : /etc/systemd/system/prometheus.service
+# Licence : CC BY 4.0
+# =============================================================================
+# Unité systemd hardenée pour Prometheus 3.x sur Debian Trixie.
+#
+# Notes Prometheus 3.x :
+#   - Les flags --web.console.templates et --web.console.libraries ont été
+#     volontairement retirés : les anciennes consoles HTML ne sont plus
+#     distribuées (l'UI moderne passe intégralement par Grafana).
+#   - Le flag --web.enable-remote-write-receiver doit être ajouté
+#     EXPLICITEMENT si Prometheus doit recevoir des métriques via remote
+#     write (ex. depuis un OTel Collector).
+#
+# Sécurité : --web.enable-lifecycle et --web.enable-admin-api exposent des
+# opérations destructrices via HTTP sans authentification. À protéger par
+# reverse proxy ou bind sur 127.0.0.1 en production.
+# =============================================================================
+
+[Unit]
+Description=Prometheus Monitoring System
+Documentation=https://prometheus.io/docs/
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=prometheus
+Group=prometheus
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStart=/usr/local/bin/prometheus \
+  --config.file=/etc/prometheus/prometheus.yml \
+  --storage.tsdb.path=/var/lib/prometheus/ \
+  --storage.tsdb.retention.time=30d \
+  --storage.tsdb.retention.size=50GB \
+  --web.listen-address=0.0.0.0:9090 \
+  --web.enable-lifecycle \
+  --web.enable-admin-api
+
+Restart=always
+RestartSec=5
+
+# Hardening systemd (cohérent avec les recommandations du module 16.1)
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/prometheus/
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+
+# Limites de ressources
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

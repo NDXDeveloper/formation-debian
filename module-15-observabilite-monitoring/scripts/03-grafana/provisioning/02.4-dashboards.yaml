@@ -1,0 +1,29 @@
+# =============================================================================
+# Module 15 — Observabilité et monitoring
+# Section 15.2.4 — Grafana : provisioning des dashboards
+# Fichier : /etc/grafana/provisioning/dashboards/dashboards.yaml
+# Licence : CC BY 4.0
+# =============================================================================
+# Provider de dashboards : Grafana scanne `path` au démarrage et toutes les
+# `updateIntervalSeconds`, importe automatiquement chaque .json présent.
+# Les dashboards provisionnés ne sont pas modifiables via l'UI (
+# `disableDeletion: true` empêche la suppression accidentelle).
+#
+# Workflow GitOps : commit du JSON → CI déploie sur le serveur → Grafana
+# détecte et importe sans intervention manuelle.
+# =============================================================================
+---
+apiVersion: 1
+
+providers:
+  - name: 'default'
+    orgId: 1
+    folder: ''                  # Dossier racine
+    folderUid: ''
+    type: file
+    disableDeletion: true       # Empêche suppression via UI
+    updateIntervalSeconds: 30
+    allowUiUpdates: false       # Lecture seule depuis UI
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: true   # Sous-dossiers → dossiers Grafana
